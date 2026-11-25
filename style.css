@@ -1,19 +1,28 @@
-/* Feito para Safari 9 (iPad 2 / iOS 9): sem CSS grid, sem variáveis. */
+/* Feito para Safari 9 (iPad 2 / iOS 9): sem CSS grid, sem variáveis,
+   sem backdrop-filter. Visual no estilo iOS: fonte do sistema (San
+   Francisco), cartões arredondados e as cores do modo escuro da Apple.
+   Paleta: fundo #000, cartão rgba(255,255,255,.09), texto #fff,
+   secundário #8e8e93, azul #0a84ff, amarelo #ffd60a, verde #30d158,
+   vermelho #ff453a, ciano #64d2ff. */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  background: #0b0f14;
-  color: #e8edf2;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 300;
+  background: #05070c;
+  /* "papel de parede" escuro, como a tela de bloqueio */
+  background: -webkit-linear-gradient(top, #1b2a44 0%, #0c1220 45%, #000 100%);
+  background: linear-gradient(to bottom, #1b2a44 0%, #0c1220 45%, #000 100%);
+  color: #fff;
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
   overflow: hidden;
   -webkit-user-select: none;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-font-smoothing: antialiased;
 }
 #painel {
   height: 100%;
-  padding: 18px 36px 8px;
+  padding: 14px 20px 6px;
   display: -webkit-flex; display: flex;
   -webkit-flex-direction: column; flex-direction: column;
   -webkit-transition: opacity 2s; transition: opacity 2s;
@@ -21,71 +30,97 @@ body {
 /* Modo noite: escurece (alternável tocando na tela) */
 body.noite #painel { opacity: 0.35; }
 
+/* Cartões (como os widgets do iOS) */
+#horas, #dias, #noticias {
+  background: #161a22;
+  background: rgba(255,255,255,0.09);
+  border-radius: 16px;
+  margin-top: 10px;
+}
+
+/* Topo: relógio de tela de bloqueio + tempo agora */
 #topo {
   display: -webkit-flex; display: flex;
   -webkit-justify-content: space-between; justify-content: space-between;
   -webkit-align-items: flex-start; align-items: flex-start;
+  padding: 0 6px;
 }
-#hora { font-size: 118px; line-height: 1; font-weight: 100; letter-spacing: -4px; }
-#data { font-size: 30px; color: #9fb0c0; margin-top: 8px; }
-#data b { color: #e8edf2; font-weight: 400; }
+#hora { font-size: 112px; line-height: 1; font-weight: 200; letter-spacing: -3px; }
+#data { font-size: 24px; color: #8e8e93; margin-top: 6px; font-weight: 400; }
+#data b { color: #fff; font-weight: 600; }
 
-#agora { text-align: right; padding-top: 10px; }
-.agora-linha { font-size: 76px; line-height: 1; font-weight: 100; }
-#agora-icone { display: inline-block; width: 84px; height: 84px; margin-right: 6px; vertical-align: -12px; }
+#agora { text-align: right; padding-top: 6px; }
+.agora-linha { font-size: 70px; line-height: 1; font-weight: 200; }
+#agora-icone { display: inline-block; width: 74px; height: 74px; margin-right: 4px; vertical-align: -10px; }
 #agora-icone svg, .ic svg { width: 100%; height: 100%; display: block; }
-#agora-desc { font-size: 26px; margin-top: 6px; }
-#agora-extra { font-size: 19px; color: #9fb0c0; margin-top: 6px; line-height: 1.5; }
-#cidade { font-size: 15px; color: #6b7a8a; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; }
+#agora-desc { font-size: 22px; margin-top: 4px; font-weight: 600; }
+#agora-extra { font-size: 17px; color: #8e8e93; margin-top: 4px; line-height: 1.45; }
+#cidade { font-size: 13px; color: #8e8e93; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
+/* Próximas horas e próximos dias */
 #horas, #dias {
   display: -webkit-flex; display: flex;
-  border-top: 1px solid #1e2833;
-  margin-top: 10px; padding-top: 8px;
+  padding: 8px 6px 4px;
 }
 #horas .h, #dias .d {
   -webkit-flex: 1; flex: 1;
   text-align: center;
 }
-.h .rot, .d .rot { font-size: 15px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 1px; }
-.h .ic { width: 38px; height: 38px; margin: 1px auto; }
-.h .t { font-size: 22px; }
-.h .chuva, .d .chuva { font-size: 13px; color: #5aa9e6; height: 16px; }
-.d .ic { width: 42px; height: 42px; margin: 1px auto; }
-.d .t { font-size: 20px; }
-.d .t .min { color: #6b7a8a; }
-#dias .d.hoje .rot { color: #f2c14e; }
+#dias .d { border-left: 1px solid rgba(255,255,255,0.08); }
+#dias .d:first-child { border-left: 0; }
+.h .rot, .d .rot { font-size: 14px; color: #8e8e93; font-weight: 600; }
+.h .ic { width: 34px; height: 34px; margin: 2px auto; }
+.h .t { font-size: 21px; font-weight: 500; }
+.h .chuva, .d .chuva { font-size: 13px; color: #64d2ff; height: 16px; font-weight: 600; }
+.d .ic { width: 38px; height: 38px; margin: 2px auto; }
+.d .t { font-size: 19px; font-weight: 500; }
+.d .t .min { color: #8e8e93; }
+#horas .h:first-child .rot, #dias .d.hoje .rot { color: #fff; }
 
+/* Notícias: lista agrupada, como em Ajustes/Notícias */
 #noticias {
   -webkit-flex: 1; flex: 1;
-  border-top: 1px solid #1e2833;
-  margin-top: 12px; padding-top: 10px;
+  padding: 10px 16px 0;
   overflow: hidden;
   min-height: 0;
 }
-.titulo-secao { font-size: 14px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+.titulo-secao {
+  font-size: 13px; color: #8e8e93; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
 /* Cotação do dólar, discreta, na mesma linha do título das notícias */
-#dolar { float: right; letter-spacing: 1px; line-height: 16px; margin-top: -1px; }
-#dolar b { font-size: 16px; color: #e8edf2; font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+#dolar { float: right; line-height: 16px; margin-top: -1px; }
+#dolar b { font-size: 16px; color: #fff; font-weight: 600; letter-spacing: 0; margin-left: 6px; }
 #dolar .var { margin-left: 8px; letter-spacing: 0; }
-#dolar .sobe { color: #c0664a; }
-#dolar .desce { color: #6fbf8a; }
+#dolar .sobe { color: #ff453a; }
+#dolar .desce { color: #30d158; }
 #lista-noticias { list-style: none; -webkit-transition: opacity .6s; transition: opacity .6s; }
 #lista-noticias.sumindo { opacity: 0; }
-#lista-noticias li { font-size: 22px; line-height: 1.3; padding: 10px 0; border-bottom: 1px solid #141b23; overflow: hidden; }
-#lista-noticias li.com-img { min-height: 95px; }
+#lista-noticias li {
+  font-size: 21px; line-height: 1.28; font-weight: 500;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+#lista-noticias li.com-img { min-height: 92px; }
 #lista-noticias .mini {
-  float: left; width: 112px; height: 75px;
-  margin-right: 16px; border-radius: 6px;
-  background: #141b23;
+  float: left; width: 108px; height: 72px;
+  margin-right: 14px; border-radius: 10px;
+  background: rgba(255,255,255,0.08);
 }
 #lista-noticias .texto { overflow: hidden; }
 #lista-noticias li:last-child { border-bottom: 0; }
-#lista-noticias .fonte { font-size: 13px; color: #f2c14e; text-transform: uppercase; letter-spacing: 1px; margin-right: 8px; font-weight: 400; }
-#lista-noticias .quando { font-size: 13px; color: #6b7a8a; margin-left: 6px; }
+#lista-noticias .fonte {
+  display: block;
+  font-size: 13px; color: #ff9f0a; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  line-height: 1.2; margin-bottom: 2px;
+}
+#lista-noticias .quando { white-space: nowrap; font-size: 14px; color: #8e8e93; margin-left: 6px; font-weight: 400; }
 
-#rodape { font-size: 12px; color: #3d4a57; text-align: right; padding-top: 6px; }
-#rodape.alerta { color: #c0664a; }
+#rodape { font-size: 12px; color: #636366; text-align: right; padding: 5px 6px 0; }
+#rodape.alerta { color: #ff453a; }
 
 /* Porta-retratos (tela cheia por cima do painel) */
 #retratos {
@@ -107,37 +142,36 @@ body.noite #painel { opacity: 0.35; }
 #retratos .foto.visivel { opacity: 1; }
 #retratos-hora {
   position: absolute; right: 24px; bottom: 18px;
-  font-size: 44px; font-weight: 200; color: #fff;
+  font-size: 48px; font-weight: 200; color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,0.8);
 }
 
-/* Tela de senha */
+/* Tela de senha (como o "Digite a senha" do iOS) */
 #entrada { display: none; }
 html.trancado #painel, html.trancado #retratos { visibility: hidden; }
 html.trancado #entrada {
   display: block;
-  position: fixed; top: 22%; left: 50%;
+  position: fixed; top: 20%; left: 50%;
   width: 360px; margin-left: -180px;
   text-align: center;
 }
-#entrada-titulo { font-size: 40px; font-weight: 100; margin-bottom: 24px; }
+#entrada-titulo { font-size: 34px; font-weight: 700; margin-bottom: 22px; }
 #entrada-senha, #entrada-botao {
   display: block; width: 100%;
-  font: inherit; font-size: 22px;
-  padding: 12px 16px; border-radius: 8px;
+  font: inherit; font-size: 20px;
+  padding: 13px 16px; border-radius: 12px;
   -webkit-appearance: none;
 }
-#entrada-senha { border: 1px solid #2a3642; background: #141b23; color: #e8edf2; }
-#entrada-botao { margin-top: 12px; border: 0; background: #f2c14e; color: #0b0f14; font-weight: 400; }
+#entrada-senha { border: 0; background: #1c1f26; background: rgba(255,255,255,0.12); color: #fff; }
+#entrada-botao { margin-top: 12px; border: 0; background: #0a84ff; color: #fff; font-weight: 600; }
 #entrada-botao[disabled] { opacity: 0.5; }
-#entrada-msg { margin-top: 14px; font-size: 17px; color: #9fb0c0; min-height: 22px; }
+#entrada-msg { margin-top: 14px; font-size: 16px; color: #8e8e93; min-height: 22px; }
 
 /* Retrato (768 x 1024) */
 @media (orientation: portrait) {
   #topo { -webkit-flex-direction: column; flex-direction: column; }
-  #agora { text-align: left; padding-top: 20px; }
-  #hora { font-size: 150px; }
-  #agora { padding-top: 12px; }
+  #agora { text-align: left; padding-top: 12px; }
+  #hora { font-size: 140px; }
   #horas .h:nth-child(n+8) { display: none; }
 }
 /* Paisagem: menos horas para caber */
