@@ -15,20 +15,63 @@
   var DIAS_CURTOS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
-  // Códigos WMO usados pelo Open-Meteo
-  function clima(codigo, dia) {
-    var c = codigo;
-    if (c === 0) return { i: dia ? '☀️' : '🌙', d: 'Céu limpo' };
-    if (c === 1) return { i: dia ? '🌤' : '🌙', d: 'Poucas nuvens' };
-    if (c === 2) return { i: '⛅️', d: 'Parcialmente nublado' };
-    if (c === 3) return { i: '☁️', d: 'Nublado' };
-    if (c === 45 || c === 48) return { i: '🌫', d: 'Neblina' };
-    if (c >= 51 && c <= 57) return { i: '🌦', d: 'Garoa' };
-    if (c >= 61 && c <= 67) return { i: '🌧', d: c >= 65 ? 'Chuva forte' : 'Chuva' };
-    if (c >= 71 && c <= 77) return { i: '❄️', d: 'Neve' };
-    if (c >= 80 && c <= 82) return { i: '🌦', d: 'Pancadas de chuva' };
-    if (c >= 95) return { i: '⛈', d: 'Tempestade' };
-    return { i: '🌡', d: '—' };
+  // Códigos WMO usados pelo Open-Meteo -> tipo de ícone + descrição
+  function clima(c, dia) {
+    if (c === 0) return { i: dia ? 'sol' : 'lua', d: 'Céu limpo' };
+    if (c === 1 || c === 2) return { i: dia ? 'solnuvem' : 'luanuvem', d: c === 1 ? 'Poucas nuvens' : 'Parcialmente nublado' };
+    if (c === 3) return { i: 'nuvem', d: 'Nublado' };
+    if (c === 45 || c === 48) return { i: 'neblina', d: 'Neblina' };
+    if (c >= 51 && c <= 57) return { i: 'garoa', d: 'Garoa' };
+    if (c >= 61 && c <= 67) return { i: 'chuva', d: c >= 65 ? 'Chuva forte' : 'Chuva' };
+    if (c >= 71 && c <= 77) return { i: 'neve', d: 'Neve' };
+    if (c >= 80 && c <= 82) return { i: 'chuva', d: 'Pancadas de chuva' };
+    if (c >= 95) return { i: 'tempestade', d: 'Tempestade' };
+    return { i: 'nuvem', d: '—' };
+  }
+
+  /* Ícones em SVG (os emojis do iOS 9 aparecem minúsculos) */
+  var AMARELO = '#f2c14e', NUVEM = '#d5dde6', AZUL = '#5aa9e6';
+  function svgSol(cx, cy, r) {
+    var raios = '', k, ang, x1, y1, x2, y2;
+    for (k = 0; k < 8; k++) {
+      ang = k * Math.PI / 4;
+      x1 = cx + Math.cos(ang) * (r + 4); y1 = cy + Math.sin(ang) * (r + 4);
+      x2 = cx + Math.cos(ang) * (r + 10); y2 = cy + Math.sin(ang) * (r + 10);
+      raios += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>';
+    }
+    return '<g stroke="' + AMARELO + '" stroke-width="3.5" stroke-linecap="round">' + raios + '</g>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + AMARELO + '"/>';
+  }
+  function svgLua(cx, cy, r) {
+    return '<path fill="#e9e4c8" d="M' + (cx + r * 0.3) + ' ' + (cy - r) + 'A' + r + ' ' + r + ' 0 1 0 ' + (cx + r) + ' ' + (cy + r * 0.35) +
+      'A' + (r * 0.8) + ' ' + (r * 0.8) + ' 0 0 1 ' + (cx + r * 0.3) + ' ' + (cy - r) + 'Z"/>';
+  }
+  function svgNuvem(cor, dy) {
+    dy = dy || 0;
+    return '<path fill="' + (cor || NUVEM) + '" d="M18 ' + (48 + dy) + 'H47A10 10 0 0 0 47 ' + (28 + dy) +
+      'A14 14 0 0 0 21 ' + (25 + dy) + 'A11.5 11.5 0 0 0 18 ' + (48 + dy) + 'Z"/>';
+  }
+  function svgGotas(n, cor) {
+    var g = '', k, x;
+    for (k = 0; k < n; k++) {
+      x = 22 + k * (24 / Math.max(1, n - 1));
+      g += '<line x1="' + x + '" y1="' + 50 + '" x2="' + (x - 3) + '" y2="' + 58 + '"/>';
+    }
+    return '<g stroke="' + (cor || AZUL) + '" stroke-width="3.5" stroke-linecap="round">' + g + '</g>';
+  }
+  function icone(tipo) {
+    var c = '';
+    if (tipo === 'sol') c = svgSol(32, 32, 12);
+    else if (tipo === 'lua') c = svgLua(30, 32, 16);
+    else if (tipo === 'solnuvem') c = svgSol(40, 22, 9) + svgNuvem(null, 6);
+    else if (tipo === 'luanuvem') c = svgLua(38, 20, 11) + svgNuvem(null, 6);
+    else if (tipo === 'nuvem') c = svgNuvem() ;
+    else if (tipo === 'neblina') c = '<g stroke="' + NUVEM + '" stroke-width="4" stroke-linecap="round"><line x1="12" y1="24" x2="52" y2="24"/><line x1="8" y1="34" x2="48" y2="34"/><line x1="16" y1="44" x2="56" y2="44"/></g>';
+    else if (tipo === 'garoa') c = svgNuvem(null, -6) + svgGotas(3);
+    else if (tipo === 'chuva') c = svgNuvem('#b9c4d0', -6) + svgGotas(4);
+    else if (tipo === 'neve') c = svgNuvem(null, -6) + '<g fill="#fff"><circle cx="22" cy="54" r="3"/><circle cx="32" cy="58" r="3"/><circle cx="42" cy="54" r="3"/></g>';
+    else if (tipo === 'tempestade') c = svgNuvem('#9aa6b3', -6) + '<path fill="' + AMARELO + '" d="M34 40L24 54h8l-4 10 12-16h-8l4-8z"/>';
+    return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' + c + '</svg>';
   }
 
   function $(id) { return document.getElementById(id); }
@@ -96,7 +139,7 @@
     if (typeof t.utc_offset_seconds === 'number') fusoSeg = t.utc_offset_seconds;
     var c = t.current;
     var k = clima(c.weather_code, c.is_day);
-    $('agora-icone').innerHTML = k.i;
+    $('agora-icone').innerHTML = icone(k.i);
     $('agora-temp').innerHTML = Math.round(c.temperature_2m) + '°';
     $('agora-desc').innerHTML = k.d;
 
@@ -105,7 +148,7 @@
     if (dd) {
       extra += '<br>Máx ' + Math.round(dd.temperature_2m_max[0]) + '° · Mín ' + Math.round(dd.temperature_2m_min[0]) + '°';
       if (dd.sunrise && dd.sunset) {
-        extra += ' · ☀︎ ' + dd.sunrise[0].slice(11, 16) + ' – ' + dd.sunset[0].slice(11, 16);
+        extra += ' · nascer ' + dd.sunrise[0].slice(11, 16) + ' · pôr ' + dd.sunset[0].slice(11, 16);
       }
     }
     $('agora-extra').innerHTML = extra;
@@ -120,7 +163,7 @@
         var hk = clima(hh.weather_code[i], dt.getUTCHours() >= 6 && dt.getUTCHours() < 19);
         var p = hh.precipitation_probability ? hh.precipitation_probability[i] : 0;
         html += '<div class="h"><div class="rot">' + (n === 0 ? 'agora' : dois(dt.getUTCHours()) + 'h') + '</div>' +
-          '<div class="ic">' + hk.i + '</div><div class="t">' + Math.round(hh.temperature_2m[i]) + '°</div>' +
+          '<div class="ic">' + icone(hk.i) + '</div><div class="t">' + Math.round(hh.temperature_2m[i]) + '°</div>' +
           '<div class="chuva">' + (p >= 20 ? p + '%' : '') + '</div></div>';
         n++;
       }
@@ -135,9 +178,9 @@
         var dk = clima(dd.weather_code[i], true);
         var pc = dd.precipitation_probability_max ? dd.precipitation_probability_max[i] : 0;
         html += '<div class="d' + (i === 0 ? ' hoje' : '') + '"><div class="rot">' + (i === 0 ? 'hoje' : DIAS_CURTOS[dia.getUTCDay()]) + '</div>' +
-          '<div class="ic">' + dk.i + '</div>' +
+          '<div class="ic">' + icone(dk.i) + '</div>' +
           '<div class="t">' + Math.round(dd.temperature_2m_max[i]) + '° <span class="min">' + Math.round(dd.temperature_2m_min[i]) + '°</span></div>' +
-          '<div class="chuva">' + (pc >= 20 ? '💧' + pc + '%' : '') + '</div></div>';
+          '<div class="chuva">' + (pc >= 20 ? pc + '% chuva' : '') + '</div></div>';
       }
     }
     $('dias').innerHTML = html;
