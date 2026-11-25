@@ -111,8 +111,7 @@
   var noiteManual = null; // null = automático
   function tique() {
     var d = agoraLocal();
-    $('hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes()) +
-      '<span class="seg">' + dois(d.getUTCSeconds()) + '</span>';
+    $('hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes());
     $('data').innerHTML = '<b>' + DIAS[d.getUTCDay()] + '</b>, ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
     var h = d.getUTCHours();
     var noiteAuto = CONFIG.noiteInicio > CONFIG.noiteFim

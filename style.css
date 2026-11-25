@@ -27,7 +27,6 @@ body.noite #painel { opacity: 0.35; }
   -webkit-align-items: flex-start; align-items: flex-start;
 }
 #hora { font-size: 132px; line-height: 1; font-weight: 100; letter-spacing: -4px; }
-#hora .seg { font-size: 44px; color: #6b7a8a; letter-spacing: 0; margin-left: 8px; }
 #data { font-size: 30px; color: #9fb0c0; margin-top: 8px; }
 #data b { color: #e8edf2; font-weight: 400; }
 
