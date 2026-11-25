@@ -96,15 +96,18 @@
     return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], +(p[3] || 0), +(p[4] || 0)));
   }
   function pegarJSON(url, ok, falha) {
+    pegarTexto(url, function (txt, data) {
+      var j; try { j = JSON.parse(txt); } catch (e) {}
+      if (j) ok(j, data); else if (falha) falha();
+    }, falha);
+  }
+  function pegarTexto(url, ok, falha) {
     var x = new XMLHttpRequest();
     x.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now(), true);
     x.timeout = 20000;
     x.onreadystatechange = function () {
       if (x.readyState !== 4) return;
-      if (x.status >= 200 && x.status < 300) {
-        var j; try { j = JSON.parse(x.responseText); } catch (e) {}
-        if (j) { ok(j, x.getResponseHeader('Date')); return; }
-      }
+      if (x.status >= 200 && x.status < 300) { ok(x.responseText, x.getResponseHeader('Date')); return; }
       if (falha) falha();
     };
     x.send();
@@ -129,6 +132,7 @@
   // Tocar na tela alterna claro/escuro; dois toques voltam ao automático
   var ultimoToque = 0;
   document.addEventListener('touchend', function () {
+    if (!chave) return; // tela de senha
     var agora = Date.now();
     if (fecharRetratos()) { ultimoToque = 0; return; } // toque só fecha as fotos
     if (agora - ultimoToque < 400) { noiteManual = null; }
@@ -277,18 +281,26 @@
     return filaFotos.shift();
   }
   function trocarFoto() {
-    var url = proximaFoto(), nova = $(camadaA ? 'foto-a' : 'foto-b'), velha = $(camadaA ? 'foto-b' : 'foto-a');
-    var img = new Image();
-    img.onload = function () {
+    var url = proximaFoto();
+    pegarTexto(url, function (txt) {
       if (!retratosAbertos) return;
-      nova.style.backgroundImage = 'url("' + url + '")';
-      nova.className = 'foto visivel';
-      velha.className = 'foto';
-      camadaA = !camadaA;
-      img.onload = img.onerror = null;
-    };
-    img.onerror = function () { img.onload = img.onerror = null; };
-    img.src = url;
+      var bits = abrir(txt);
+      if (!bits) return;
+      var nova = $(camadaA ? 'foto-a' : 'foto-b'), velha = $(camadaA ? 'foto-b' : 'foto-a');
+      var img = new Image(), src = 'data:image/jpeg;base64,' + sjcl.codec.base64.fromBits(bits);
+      bits = txt = null;
+      img.onload = function () {
+        img.onload = img.onerror = null;
+        if (!retratosAbertos) return;
+        nova.style.backgroundImage = 'url("' + src + '")';
+        nova.className = 'foto visivel';
+        velha.className = 'foto';
+        camadaA = !camadaA;
+        src = null;
+      };
+      img.onerror = function () { img.onload = img.onerror = null; };
+      img.src = src;
+    });
   }
   function abrirRetratos() {
     if (retratosAbertos || !fotos.length || ehNoite) return;
@@ -315,39 +327,98 @@
     return true;
   }
 
-  /* ---------- Dados (data.json gerado pelo GitHub Actions) ---------- */
+  /* ---------- Senha ----------
+     O site é público, mas só mostra a tela de senha: dados.txt e as fotos
+     vão cifrados (AES-CCM). A chave sai da senha (PBKDF2, igual ao
+     scripts/gerar_dados.py) e fica guardada no iPad. */
+  var SAL = 'ipad-antigo-painel', ITERACOES = 20000, CHAVE_LS = 'painelChave';
+  var chave = null, aes = null;
+  function usarChave(hex) { chave = hex; aes = new sjcl.cipher.aes(sjcl.codec.hex.toBits(hex)); }
+  // base64(nonce de 12 bytes + cifrado + etiqueta) -> bits, ou null se a senha não bate
+  function abrir(txt) {
+    try {
+      var b = sjcl.codec.base64.toBits(txt.replace(/\s/g, ''));
+      return sjcl.mode.ccm.decrypt(aes, sjcl.bitArray.bitSlice(b, 96), sjcl.bitArray.bitSlice(b, 0, 96), [], 128);
+    } catch (e) { return null; }
+  }
+  function lerChave() { try { return localStorage.getItem(CHAVE_LS); } catch (e) { return null; } }
+  function guardarChave(hex) { try { if (hex) localStorage.setItem(CHAVE_LS, hex); else localStorage.removeItem(CHAVE_LS); } catch (e) {} }
+  function trancar(msg) {
+    chave = aes = null;
+    guardarChave(null);
+    fecharRetratos();
+    document.documentElement.className = 'trancado';
+    $('entrada-msg').innerHTML = msg || '';
+    $('entrada-botao').disabled = false;
+  }
+  function entrar(e) {
+    if (e) e.preventDefault();
+    var senha = $('entrada-senha').value;
+    if (!senha) return false;
+    $('entrada-botao').disabled = true;
+    $('entrada-msg').innerHTML = 'Verificando…';
+    // deixa a mensagem aparecer antes da conta (alguns segundos no iPad 2)
+    setTimeout(function () {
+      var bits = sjcl.misc.pbkdf2(senha, sjcl.codec.utf8String.toBits(SAL), ITERACOES, 128);
+      usarChave(sjcl.codec.hex.fromBits(bits));
+      pegarTexto('dados.txt', function (txt, data) {
+        if (!usarDados(txt, data)) { trancar('Senha incorreta.'); return; }
+        guardarChave(chave);
+        $('entrada-senha').value = '';
+        $('entrada-senha').blur();
+        document.documentElement.className = '';
+      }, function () { trancar('Sem conexão. Tente de novo.'); });
+    }, 50);
+    return false;
+  }
+  $('entrada').onsubmit = entrar;
+
+  /* ---------- Dados (dados.txt, gerado e cifrado pelo GitHub Actions) ---------- */
+  function usarDados(txt, cabecalhoData) {
+    var bits = abrir(txt), d = null;
+    if (bits) { try { d = JSON.parse(sjcl.codec.utf8String.fromBits(bits)); } catch (e) {} }
+    if (!d) return false;
+    mostrarDados(d, cabecalhoData);
+    return true;
+  }
   function carregarDados() {
-    pegarJSON('data.json', function (d, cabecalhoData) {
-      var srv = cabecalhoData ? Date.parse(cabecalhoData) : NaN;
-      if (!isNaN(srv)) { var dif = srv - Date.now(); ajuste = Math.abs(dif) > 30000 ? dif : 0; }
-      if (d.latitude !== undefined) coords = { lat: d.latitude, lon: d.longitude };
-      $('cidade').innerHTML = esc(d.cidade || '');
-      if (!vivoOk) mostrarTempo(d.tempo);
-      mostrarDolar(d.dolar);
-      if (d.noticias && d.noticias.length) {
-        var primeira = !noticias.length;
-        noticias = d.noticias;
-        if (primeira) mostrarPagina();
-      }
-      if (d.fotos) {
-        fotos = d.fotos; filaFotos = [];
-        // Abrir o endereço com #fotos mostra o porta-retratos logo (para testar)
-        if (primeiraVez && location.hash === '#fotos') setTimeout(abrirRetratos, 2000);
-      }
-      var ger = Date.parse(d.gerado_em);
-      var velho = !isNaN(ger) && (agoraMs() - ger) > 3 * 3600000;
-      $('rodape').className = velho ? 'alerta' : '';
-      $('atualizado').innerHTML = 'notícias ' + haQuanto(d.gerado_em);
-      if (primeiraVez) { primeiraVez = false; tempoAoVivo(); }
+    if (!chave) return;
+    pegarTexto('dados.txt', function (txt, data) {
+      if (!usarDados(txt, data)) trancar('A senha mudou. Digite a nova.');
     }, function () {
       $('rodape').className = 'alerta';
       $('atualizado').innerHTML = 'sem conexão — tentando de novo';
     });
   }
+  function mostrarDados(d, cabecalhoData) {
+    var srv = cabecalhoData ? Date.parse(cabecalhoData) : NaN;
+    if (!isNaN(srv)) { var dif = srv - Date.now(); ajuste = Math.abs(dif) > 30000 ? dif : 0; }
+    if (d.latitude !== undefined) coords = { lat: d.latitude, lon: d.longitude };
+    $('cidade').innerHTML = esc(d.cidade || '');
+    if (!vivoOk) mostrarTempo(d.tempo);
+    mostrarDolar(d.dolar);
+    if (d.noticias && d.noticias.length) {
+      var primeira = !noticias.length;
+      noticias = d.noticias;
+      if (primeira) mostrarPagina();
+    }
+    if (d.fotos) {
+      fotos = d.fotos; filaFotos = [];
+      // Abrir o endereço com #fotos mostra o porta-retratos logo (para testar)
+      if (primeiraVez && location.hash === '#fotos') setTimeout(abrirRetratos, 2000);
+    }
+    var ger = Date.parse(d.gerado_em);
+    var velho = !isNaN(ger) && (agoraMs() - ger) > 3 * 3600000;
+    $('rodape').className = velho ? 'alerta' : '';
+    $('atualizado').innerHTML = 'notícias ' + haQuanto(d.gerado_em);
+    if (primeiraVez) { primeiraVez = false; tempoAoVivo(); }
+  }
   var primeiraVez = true;
 
   tique();
-  carregarDados();
+  var guardada = lerChave();
+  if (guardada) { usarChave(guardada); document.documentElement.className = ''; carregarDados(); }
+  else trancar();
   setInterval(carregarDados, CONFIG.recarregarDadosMin * 60000);
   setInterval(tempoAoVivo, CONFIG.tempoAoVivoMin * 60000);
   setInterval(proximaPagina, CONFIG.trocaNoticiasSeg * 1000);

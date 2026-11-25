@@ -111,6 +111,27 @@ body.noite #painel { opacity: 0.35; }
   text-shadow: 0 1px 6px rgba(0,0,0,0.8);
 }
 
+/* Tela de senha */
+#entrada { display: none; }
+html.trancado #painel, html.trancado #retratos { visibility: hidden; }
+html.trancado #entrada {
+  display: block;
+  position: fixed; top: 22%; left: 50%;
+  width: 360px; margin-left: -180px;
+  text-align: center;
+}
+#entrada-titulo { font-size: 40px; font-weight: 100; margin-bottom: 24px; }
+#entrada-senha, #entrada-botao {
+  display: block; width: 100%;
+  font: inherit; font-size: 22px;
+  padding: 12px 16px; border-radius: 8px;
+  -webkit-appearance: none;
+}
+#entrada-senha { border: 1px solid #2a3642; background: #141b23; color: #e8edf2; }
+#entrada-botao { margin-top: 12px; border: 0; background: #f2c14e; color: #0b0f14; font-weight: 400; }
+#entrada-botao[disabled] { opacity: 0.5; }
+#entrada-msg { margin-top: 14px; font-size: 17px; color: #9fb0c0; min-height: 22px; }
+
 /* Retrato (768 x 1024) */
 @media (orientation: portrait) {
   #topo { -webkit-flex-direction: column; flex-direction: column; }

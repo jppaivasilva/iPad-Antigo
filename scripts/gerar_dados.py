@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Gera painel/data.json com previsão do tempo, notícias e cotação do dólar.
+"""Gera dados.txt (cifrado) com previsão do tempo, notícias e cotação do dólar.
 
 Roda no GitHub Actions (ou localmente). Usa só a biblioteca padrão.
 O iPad só precisa ler esse JSON, que fica no mesmo site do painel:
 assim evitamos problemas de CORS e de certificados no Safari antigo.
 """
+import base64
 import hashlib
 import html
 import io
@@ -22,10 +23,13 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 PASTA_IMG = "img"          # miniaturas ficam em img/ junto da página
 TAM_MINI = (224, 150)      # o dobro do tamanho na tela (112 x 75)
-PASTA_FOTOS = "fotos"      # fotos originais do porta-retratos (você sobe aqui)
-PASTA_RETRATOS = "retratos"  # versões reduzidas publicadas para o iPad
+PASTA_RETRATOS = "retratos"  # fotos reduzidas e cifradas publicadas para o iPad
 TAM_FOTO = (1024, 1024)    # cabe na tela do iPad 2 (1024 x 768) em qualquer posição
-EXT_FOTOS = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+# Senha do painel: o site só mostra uma tela de login; dados e fotos vão
+# cifrados (AES-CCM) e só abrem no iPad com a senha. Os mesmos valores
+# estão em app.js.
+SAL = b"ipad-antigo-painel"
+ITERACOES = 20000
 MEDIA = "{http://search.yahoo.com/mrss/}"
 UA = "Mozilla/5.0 (painel-ipad; +https://github.com)"
 
@@ -133,43 +137,94 @@ def miniaturas(itens):
             os.remove(os.path.join(pasta, nome))
 
 
-def fotos():
-    """Reduz as fotos de fotos/ para retratos/ e devolve a lista de caminhos.
+def chave_da_senha(senha):
+    return hashlib.pbkdf2_hmac("sha256", senha.encode("utf-8"), SAL, ITERACOES, 16)
 
-    O nome final vem do conteúdo da foto, então trocar uma foto gera um nome
-    novo e o Safari não mostra a versão antiga do cache.
+
+def cifrar(chave, conteudo):
+    """AES-CCM com nonce de 12 bytes e etiqueta de 16 (igual ao sjcl no iPad).
+    Sai em base64: nonce + texto cifrado + etiqueta."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESCCM
+    nonce = os.urandom(12)
+    return base64.b64encode(nonce + AESCCM(chave, tag_length=16).encrypt(nonce, conteudo, None)).decode("ascii")
+
+
+DRIVE = "https://www.googleapis.com/drive/v3/files"
+
+
+def drive_token(credenciais):
+    from google.oauth2 import service_account
+    from google.auth.transport.requests import Request
+    c = service_account.Credentials.from_service_account_info(
+        json.loads(credenciais), scopes=["https://www.googleapis.com/auth/drive.readonly"])
+    c.refresh(Request())
+    return c.token
+
+
+def drive_get(url, token, timeout=60):
+    req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+
+def drive_listar(pasta, token, maximo):
+    itens, pagina = [], None
+    while len(itens) < maximo:
+        q = {
+            "q": "'%s' in parents and mimeType contains 'image/' and trashed = false" % pasta,
+            "fields": "nextPageToken, files(id, md5Checksum)",
+            "orderBy": "createdTime desc",
+            "pageSize": 1000,
+            "supportsAllDrives": "true",
+            "includeItemsFromAllDrives": "true",
+        }
+        if pagina:
+            q["pageToken"] = pagina
+        r = json.loads(drive_get(DRIVE + "?" + urllib.parse.urlencode(q), token))
+        itens += r.get("files", [])
+        pagina = r.get("nextPageToken")
+        if not pagina:
+            break
+    return itens[:maximo]
+
+
+def fotos(cfg, chave):
+    """Baixa as fotos da pasta do Google Drive, reduz e cifra em retratos/.
+
+    O nome do arquivo vem da chave + conteúdo da foto: não revela nada e
+    muda se a foto ou a senha mudarem. Fotos já prontas (cache do Actions)
+    não são baixadas de novo.
     """
-    origem = os.path.join(RAIZ, PASTA_FOTOS)
     destino = os.path.join(RAIZ, PASTA_RETRATOS)
     os.makedirs(destino, exist_ok=True)
-    if not os.path.isdir(origem):
-        return []
-    try:
-        from PIL import Image, ImageOps
-    except ImportError:
-        return []
+    credenciais = os.environ.get("GDRIVE_CREDENCIAIS")
+    pasta = os.environ.get("GDRIVE_PASTA")
+    if not (credenciais and pasta):
+        print("Fotos: GDRIVE_CREDENCIAIS / GDRIVE_PASTA não configurados", file=sys.stderr)
+        return None
+    from PIL import Image, ImageOps
     try:  # fotos do iPhone (HEIC)
         from pillow_heif import register_heif_opener
         register_heif_opener()
     except ImportError:
         pass
+    token = drive_token(credenciais)
     saida = []
-    for nome in sorted(os.listdir(origem)):
-        if not nome.lower().endswith(EXT_FOTOS):
-            continue
-        caminho = os.path.join(origem, nome)
-        with open(caminho, "rb") as f:
-            bruto = f.read()
-        final = hashlib.sha1(bruto).hexdigest()[:12] + ".jpg"
+    for arq in drive_listar(pasta, token, cfg.get("max_fotos", 300)):
+        marca = (arq.get("md5Checksum") or arq["id"]).encode("ascii")
+        final = hashlib.sha256(chave + marca).hexdigest()[:16] + ".txt"
         alvo = os.path.join(destino, final)
         if not os.path.exists(alvo):
             try:
-                img = ImageOps.exif_transpose(Image.open(io.BytesIO(bruto)))
-                img = img.convert("RGB")
+                bruto = drive_get(DRIVE + "/" + arq["id"] + "?alt=media&supportsAllDrives=true", token, 120)
+                img = ImageOps.exif_transpose(Image.open(io.BytesIO(bruto))).convert("RGB")
                 img.thumbnail(TAM_FOTO, Image.LANCZOS)
-                img.save(alvo, "JPEG", quality=80, optimize=True, progressive=False)
+                buf = io.BytesIO()
+                img.save(buf, "JPEG", quality=80, optimize=True, progressive=False)
+                with open(alvo, "w") as f:
+                    f.write(cifrar(chave, buf.getvalue()))
             except Exception as e:
-                print("Falha na foto", nome, e, file=sys.stderr)
+                print("Falha na foto", arq["id"], e, file=sys.stderr)
                 continue
         saida.append(PASTA_RETRATOS + "/" + final)
     usadas = set(os.path.basename(c) for c in saida)
@@ -223,6 +278,11 @@ def intercalar(listas, maximo):
 
 
 def main():
+    senha = os.environ.get("PAINEL_SENHA")
+    if not senha:
+        sys.exit("Falta a senha do painel (segredo PAINEL_SENHA). Nada foi publicado.")
+    chave = chave_da_senha(senha)
+
     with open(os.path.join(RAIZ, "config.json"), encoding="utf-8") as f:
         cfg = json.load(f)
 
@@ -260,10 +320,21 @@ def main():
     selecionadas = intercalar(listas, cfg.get("max_noticias", 18))
     miniaturas(selecionadas)
     dados["noticias"] = selecionadas or anterior.get("noticias", [])
-    dados["fotos"] = fotos()
+    try:
+        lista = fotos(cfg, chave)
+    except Exception as e:  # Drive fora do ar: mantém as fotos de antes
+        print("Falha nas fotos:", e, file=sys.stderr)
+        lista = None
+    if lista is None:  # usa as fotos que já estavam prontas (cache)
+        pasta = os.path.join(RAIZ, PASTA_RETRATOS)
+        lista = [PASTA_RETRATOS + "/" + n for n in sorted(os.listdir(pasta))] if os.path.isdir(pasta) else []
+    dados["fotos"] = lista
 
     with open(destino, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
+    # Só a versão cifrada vai para o site
+    with open(os.path.join(RAIZ, "dados.txt"), "w") as f:
+        f.write(cifrar(chave, json.dumps(dados, ensure_ascii=False, separators=(",", ":")).encode("utf-8")))
     print("OK:", len(dados["noticias"]), "notícias,",
           sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", len(dados["fotos"]), "fotos;", "tempo", "ok" if dados["tempo"] else "indisponível",
           "· dólar", dados["dolar"]["valor"] if dados.get("dolar") else "indisponível")
