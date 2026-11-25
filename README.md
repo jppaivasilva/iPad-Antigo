@@ -33,6 +33,12 @@ Ajustes da tela (tempo de troca das notícias, horário noturno) ficam no topo d
 
 ## Preparar o iPad
 
+**Certificado (obrigatório no iOS 9).** O GitHub Pages usa certificados da
+Let's Encrypt, cuja raiz (ISRG Root X1) o iOS 9 não conhece. Instale-a uma vez:
+no **Safari** do iPad abra `http://x1.i.lencr.org/` (link oficial da Let's
+Encrypt, sem o "s") → **Instalar** → digite o código → **Instalar** → **OK**.
+Impressão digital SHA-256: `96:BC:EC:06:…:BD:DF:08:C6`.
+
 0. Libere espaço (**Ajustes → Geral → Uso**): com 0 bytes livres o Safari
    pode fechar sozinho ou não salvar o ícone.
 1. Abra o endereço no Safari e toque em **Compartilhar → Adicionar à Tela de Início**.
