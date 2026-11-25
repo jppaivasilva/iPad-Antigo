@@ -22,6 +22,10 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 PASTA_IMG = "img"          # miniaturas ficam em img/ junto da página
 TAM_MINI = (224, 150)      # o dobro do tamanho na tela (112 x 75)
+PASTA_FOTOS = "fotos"      # fotos originais do porta-retratos (você sobe aqui)
+PASTA_RETRATOS = "retratos"  # versões reduzidas publicadas para o iPad
+TAM_FOTO = (1024, 1024)    # cabe na tela do iPad 2 (1024 x 768) em qualquer posição
+EXT_FOTOS = (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
 MEDIA = "{http://search.yahoo.com/mrss/}"
 UA = "Mozilla/5.0 (painel-ipad; +https://github.com)"
 
@@ -129,6 +133,52 @@ def miniaturas(itens):
             os.remove(os.path.join(pasta, nome))
 
 
+def fotos():
+    """Reduz as fotos de fotos/ para retratos/ e devolve a lista de caminhos.
+
+    O nome final vem do conteúdo da foto, então trocar uma foto gera um nome
+    novo e o Safari não mostra a versão antiga do cache.
+    """
+    origem = os.path.join(RAIZ, PASTA_FOTOS)
+    destino = os.path.join(RAIZ, PASTA_RETRATOS)
+    os.makedirs(destino, exist_ok=True)
+    if not os.path.isdir(origem):
+        return []
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        return []
+    try:  # fotos do iPhone (HEIC)
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+    except ImportError:
+        pass
+    saida = []
+    for nome in sorted(os.listdir(origem)):
+        if not nome.lower().endswith(EXT_FOTOS):
+            continue
+        caminho = os.path.join(origem, nome)
+        with open(caminho, "rb") as f:
+            bruto = f.read()
+        final = hashlib.sha1(bruto).hexdigest()[:12] + ".jpg"
+        alvo = os.path.join(destino, final)
+        if not os.path.exists(alvo):
+            try:
+                img = ImageOps.exif_transpose(Image.open(io.BytesIO(bruto)))
+                img = img.convert("RGB")
+                img.thumbnail(TAM_FOTO, Image.LANCZOS)
+                img.save(alvo, "JPEG", quality=80, optimize=True, progressive=False)
+            except Exception as e:
+                print("Falha na foto", nome, e, file=sys.stderr)
+                continue
+        saida.append(PASTA_RETRATOS + "/" + final)
+    usadas = set(os.path.basename(c) for c in saida)
+    for nome in os.listdir(destino):  # apaga fotos que saíram da pasta
+        if nome not in usadas:
+            os.remove(os.path.join(destino, nome))
+    return saida
+
+
 def noticias(feed):
     raiz = ET.fromstring(baixar(feed["url"]))
     itens = []
@@ -210,11 +260,12 @@ def main():
     selecionadas = intercalar(listas, cfg.get("max_noticias", 18))
     miniaturas(selecionadas)
     dados["noticias"] = selecionadas or anterior.get("noticias", [])
+    dados["fotos"] = fotos()
 
     with open(destino, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
     print("OK:", len(dados["noticias"]), "notícias,",
-          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", "tempo", "ok" if dados["tempo"] else "indisponível",
+          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", len(dados["fotos"]), "fotos;", "tempo", "ok" if dados["tempo"] else "indisponível",
           "· dólar", dados["dolar"]["valor"] if dados.get("dolar") else "indisponível")
 
 

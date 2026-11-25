@@ -87,6 +87,30 @@ body.noite #painel { opacity: 0.35; }
 #rodape { font-size: 12px; color: #3d4a57; text-align: right; padding-top: 6px; }
 #rodape.alerta { color: #c0664a; }
 
+/* Porta-retratos (tela cheia por cima do painel) */
+#retratos {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  display: none;
+  opacity: 0;
+  -webkit-transition: opacity 1.5s; transition: opacity 1.5s;
+}
+#retratos.ligado { display: block; }
+#retratos.visivel { opacity: 1; }
+#retratos .foto {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: #000 no-repeat center center;
+  -webkit-background-size: contain; background-size: contain;
+  opacity: 0;
+  -webkit-transition: opacity 1.5s; transition: opacity 1.5s;
+}
+#retratos .foto.visivel { opacity: 1; }
+#retratos-hora {
+  position: absolute; right: 24px; bottom: 18px;
+  font-size: 44px; font-weight: 200; color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+
 /* Retrato (768 x 1024) */
 @media (orientation: portrait) {
   #topo { -webkit-flex-direction: column; flex-direction: column; }

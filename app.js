@@ -8,7 +8,10 @@
     tempoAoVivoMin: 15,
     recarregarPaginaHoras: 6,   // evita vazamento de memória no Safari antigo
     noiteInicio: 23,            // escurece automaticamente das 23h…
-    noiteFim: 6                 // …até as 6h
+    noiteFim: 6,                // …até as 6h
+    retratosACadaMin: 10,       // porta-retratos entra a cada 10 min…
+    retratosDuracaoSeg: 60,     // …fica 1 min na tela…
+    retratosTrocaSeg: 15        // …e troca de foto a cada 15 s
   };
 
   var DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
@@ -109,15 +112,17 @@
 
   /* ---------- Relógio ---------- */
   var noiteManual = null; // null = automático
+  var ehNoite = false;    // sem porta-retratos de madrugada nem no modo escuro
   function tique() {
     var d = agoraLocal();
-    $('hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes());
+    $('hora').innerHTML = $('retratos-hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes());
     $('data').innerHTML = '<b>' + DIAS[d.getUTCDay()] + '</b>, ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
     var h = d.getUTCHours();
     var noiteAuto = CONFIG.noiteInicio > CONFIG.noiteFim
       ? (h >= CONFIG.noiteInicio || h < CONFIG.noiteFim)
       : (h >= CONFIG.noiteInicio && h < CONFIG.noiteFim);
     var noite = noiteManual === null ? noiteAuto : noiteManual;
+    ehNoite = noiteAuto || noite;
     document.body.className = noite ? 'noite' : '';
     setTimeout(tique, 1000 - (agoraMs() % 1000));
   }
@@ -125,6 +130,7 @@
   var ultimoToque = 0;
   document.addEventListener('touchend', function () {
     var agora = Date.now();
+    if (fecharRetratos()) { ultimoToque = 0; return; } // toque só fecha as fotos
     if (agora - ultimoToque < 400) { noiteManual = null; }
     else { noiteManual = document.body.className !== 'noite'; }
     ultimoToque = agora;
@@ -256,6 +262,59 @@
     $('dolar').innerHTML = html;
   }
 
+  /* ---------- Porta-retratos ---------- */
+  // Só dois elementos de imagem, reaproveitados: o Safari antigo tem pouca
+  // memória. Ao fechar, as imagens são descarregadas.
+  var fotos = [], filaFotos = [], retratosAbertos = false, timerTroca = null, timerFim = null, camadaA = true;
+  function proximaFoto() {
+    if (!filaFotos.length) {
+      filaFotos = fotos.slice(0);
+      for (var i = filaFotos.length - 1; i > 0; i--) { // embaralha
+        var j = Math.floor(Math.random() * (i + 1)), t = filaFotos[i];
+        filaFotos[i] = filaFotos[j]; filaFotos[j] = t;
+      }
+    }
+    return filaFotos.shift();
+  }
+  function trocarFoto() {
+    var url = proximaFoto(), nova = $(camadaA ? 'foto-a' : 'foto-b'), velha = $(camadaA ? 'foto-b' : 'foto-a');
+    var img = new Image();
+    img.onload = function () {
+      if (!retratosAbertos) return;
+      nova.style.backgroundImage = 'url("' + url + '")';
+      nova.className = 'foto visivel';
+      velha.className = 'foto';
+      camadaA = !camadaA;
+      img.onload = img.onerror = null;
+    };
+    img.onerror = function () { img.onload = img.onerror = null; };
+    img.src = url;
+  }
+  function abrirRetratos() {
+    if (retratosAbertos || !fotos.length || ehNoite) return;
+    retratosAbertos = true;
+    var r = $('retratos');
+    r.className = 'ligado';
+    setTimeout(function () { if (retratosAbertos) r.className = 'ligado visivel'; }, 50);
+    trocarFoto();
+    timerTroca = setInterval(trocarFoto, CONFIG.retratosTrocaSeg * 1000);
+    timerFim = setTimeout(fecharRetratos, CONFIG.retratosDuracaoSeg * 1000);
+  }
+  function fecharRetratos() {
+    if (!retratosAbertos) return false;
+    retratosAbertos = false;
+    clearInterval(timerTroca); clearTimeout(timerFim);
+    var r = $('retratos');
+    r.className = 'ligado';
+    setTimeout(function () {
+      if (retratosAbertos) return;
+      r.className = '';
+      $('foto-a').style.backgroundImage = $('foto-b').style.backgroundImage = 'none';
+      $('foto-a').className = $('foto-b').className = 'foto';
+    }, 1600);
+    return true;
+  }
+
   /* ---------- Dados (data.json gerado pelo GitHub Actions) ---------- */
   function carregarDados() {
     pegarJSON('data.json', function (d, cabecalhoData) {
@@ -269,6 +328,11 @@
         var primeira = !noticias.length;
         noticias = d.noticias;
         if (primeira) mostrarPagina();
+      }
+      if (d.fotos) {
+        fotos = d.fotos; filaFotos = [];
+        // Abrir o endereço com #fotos mostra o porta-retratos logo (para testar)
+        if (primeiraVez && location.hash === '#fotos') setTimeout(abrirRetratos, 2000);
       }
       var ger = Date.parse(d.gerado_em);
       var velho = !isNaN(ger) && (agoraMs() - ger) > 3 * 3600000;
@@ -287,5 +351,6 @@
   setInterval(carregarDados, CONFIG.recarregarDadosMin * 60000);
   setInterval(tempoAoVivo, CONFIG.tempoAoVivoMin * 60000);
   setInterval(proximaPagina, CONFIG.trocaNoticiasSeg * 1000);
+  setInterval(abrirRetratos, CONFIG.retratosACadaMin * 60000);
   setTimeout(function () { location.reload(); }, CONFIG.recarregarPaginaHoras * 3600000);
 })();
