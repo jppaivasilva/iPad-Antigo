@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera painel/data.json com previsão do tempo e notícias.
+"""Gera painel/data.json com previsão do tempo, notícias e cotação do dólar.
 
 Roda no GitHub Actions (ou localmente). Usa só a biblioteca padrão.
 O iPad só precisa ler esse JSON, que fica no mesmo site do painel:
@@ -43,6 +43,26 @@ def tempo(cfg):
         "forecast_days": 6,
     })
     return json.loads(baixar("https://api.open-meteo.com/v1/forecast?" + q))
+
+
+def dolar():
+    """Cotação USD/BRL. Tenta a AwesomeAPI (comercial, quase ao vivo);
+    se falhar, usa a PTAX do Banco Central (uma vez por dia)."""
+    try:
+        d = json.loads(baixar("https://economia.awesomeapi.com.br/json/last/USD-BRL"))["USDBRL"]
+        quando = datetime.fromtimestamp(int(d["timestamp"]), timezone.utc).isoformat()
+        return {"valor": round(float(d["bid"]), 4), "variacao": round(float(d["pctChange"]), 2),
+                "quando": quando, "fonte": "comercial"}
+    except Exception as e:
+        print("Falha na AwesomeAPI:", e, file=sys.stderr)
+    serie = json.loads(baixar("https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/2?formato=json"))
+    ultimo = float(serie[-1]["valor"])
+    variacao = None
+    if len(serie) > 1:
+        variacao = round((ultimo / float(serie[-2]["valor"]) - 1) * 100, 2)
+    dia, mes, ano = serie[-1]["data"].split("/")
+    return {"valor": round(ultimo, 4), "variacao": variacao,
+            "quando": "%s-%s-%sT13:00:00+00:00" % (ano, mes, dia), "fonte": "PTAX"}
 
 
 def limpar(texto):
@@ -175,6 +195,12 @@ def main():
         print("Falha no tempo:", e, file=sys.stderr)
         dados["tempo"] = anterior.get("tempo")
 
+    try:
+        dados["dolar"] = dolar()
+    except Exception as e:  # mantém o último dado bom
+        print("Falha no dólar:", e, file=sys.stderr)
+        dados["dolar"] = anterior.get("dolar")
+
     listas = []
     for feed in cfg["feeds"]:
         try:
@@ -188,7 +214,8 @@ def main():
     with open(destino, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
     print("OK:", len(dados["noticias"]), "notícias,",
-          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", "tempo", "ok" if dados["tempo"] else "indisponível")
+          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", "tempo", "ok" if dados["tempo"] else "indisponível",
+          "· dólar", dados["dolar"]["valor"] if dados.get("dolar") else "indisponível")
 
 
 if __name__ == "__main__":

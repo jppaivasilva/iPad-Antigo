@@ -243,6 +243,19 @@
   }
   window.addEventListener('orientationchange', function () { setTimeout(mostrarPagina, 500); }, false);
 
+  /* ---------- Dólar ---------- */
+  function num(v, casas) { return v.toFixed(casas).replace('.', ','); }
+  function mostrarDolar(d) {
+    if (!d || typeof d.valor !== 'number') { $('dolar').innerHTML = ''; return; }
+    var html = 'Dólar <b>R$ ' + num(d.valor, 2) + '</b>';
+    if (typeof d.variacao === 'number') {
+      var v = d.variacao;
+      html += '<span class="var ' + (v > 0 ? 'sobe' : v < 0 ? 'desce' : '') + '">' +
+        (v > 0 ? '▲ ' : v < 0 ? '▼ ' : '') + num(Math.abs(v), 2) + '%</span>';
+    }
+    $('dolar').innerHTML = html;
+  }
+
   /* ---------- Dados (data.json gerado pelo GitHub Actions) ---------- */
   function carregarDados() {
     pegarJSON('data.json', function (d, cabecalhoData) {
@@ -251,6 +264,7 @@
       if (d.latitude !== undefined) coords = { lat: d.latitude, lon: d.longitude };
       $('cidade').innerHTML = esc(d.cidade || '');
       if (!vivoOk) mostrarTempo(d.tempo);
+      mostrarDolar(d.dolar);
       if (d.noticias && d.noticias.length) {
         var primeira = !noticias.length;
         noticias = d.noticias;
