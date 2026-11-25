@@ -1,0 +1,43 @@
+name: Painel do iPad
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # a cada 30 minutos
+  push:
+    branches: [main, master]
+    paths-ignore: ["README.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: painel
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Baixar tempo e notícias
+        run: python scripts/gerar_dados.py
+
+      - name: Montar site
+        run: mkdir site && cp index.html style.css app.js data.json site/
+
+      - name: Publicar no branch painel-site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: painel-site
+          publish_dir: ./site
+          force_orphan: true   # mantém só 1 commit, sem encher o histórico
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+          commit_message: Atualiza painel

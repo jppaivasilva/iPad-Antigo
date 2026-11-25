@@ -1,0 +1,87 @@
+/* Feito para Safari 9 (iPad 2 / iOS 9): sem CSS grid, sem variáveis. */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: #0b0f14;
+  color: #e8edf2;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 300;
+  overflow: hidden;
+  -webkit-user-select: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+#painel {
+  height: 100%;
+  padding: 28px 36px 16px;
+  display: -webkit-flex; display: flex;
+  -webkit-flex-direction: column; flex-direction: column;
+  -webkit-transition: opacity 2s; transition: opacity 2s;
+}
+/* Modo noite: escurece (alternável tocando na tela) */
+body.noite #painel { opacity: 0.35; }
+
+#topo {
+  display: -webkit-flex; display: flex;
+  -webkit-justify-content: space-between; justify-content: space-between;
+  -webkit-align-items: flex-start; align-items: flex-start;
+}
+#hora { font-size: 150px; line-height: 1; font-weight: 100; letter-spacing: -4px; }
+#hora .seg { font-size: 44px; color: #6b7a8a; letter-spacing: 0; margin-left: 8px; }
+#data { font-size: 30px; color: #9fb0c0; margin-top: 8px; }
+#data b { color: #e8edf2; font-weight: 400; }
+
+#agora { text-align: right; padding-top: 10px; }
+.agora-linha { font-size: 84px; line-height: 1; font-weight: 100; }
+#agora-icone { font-size: 64px; margin-right: 6px; vertical-align: 10px; }
+#agora-desc { font-size: 26px; margin-top: 6px; }
+#agora-extra { font-size: 19px; color: #9fb0c0; margin-top: 6px; line-height: 1.5; }
+#cidade { font-size: 15px; color: #6b7a8a; margin-top: 4px; text-transform: uppercase; letter-spacing: 2px; }
+
+#horas, #dias {
+  display: -webkit-flex; display: flex;
+  border-top: 1px solid #1e2833;
+  margin-top: 18px; padding-top: 14px;
+}
+#horas .h, #dias .d {
+  -webkit-flex: 1; flex: 1;
+  text-align: center;
+}
+.h .rot, .d .rot { font-size: 15px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 1px; }
+.h .ic { font-size: 26px; margin: 4px 0; }
+.h .t { font-size: 22px; }
+.h .chuva, .d .chuva { font-size: 13px; color: #5aa9e6; height: 16px; }
+.d .ic { font-size: 30px; margin: 4px 0; }
+.d .t { font-size: 20px; }
+.d .t .min { color: #6b7a8a; }
+#dias .d.hoje .rot { color: #f2c14e; }
+
+#noticias {
+  -webkit-flex: 1; flex: 1;
+  border-top: 1px solid #1e2833;
+  margin-top: 18px; padding-top: 14px;
+  overflow: hidden;
+  min-height: 0;
+}
+.titulo-secao { font-size: 14px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+#lista-noticias { list-style: none; -webkit-transition: opacity .6s; transition: opacity .6s; }
+#lista-noticias.sumindo { opacity: 0; }
+#lista-noticias li { font-size: 21px; line-height: 1.3; padding: 9px 0; border-bottom: 1px solid #141b23; }
+#lista-noticias li:last-child { border-bottom: 0; }
+#lista-noticias .fonte { font-size: 13px; color: #f2c14e; text-transform: uppercase; letter-spacing: 1px; margin-right: 8px; font-weight: 400; }
+#lista-noticias .quando { font-size: 13px; color: #6b7a8a; margin-left: 6px; }
+
+#rodape { font-size: 12px; color: #3d4a57; text-align: right; padding-top: 6px; }
+#rodape.alerta { color: #c0664a; }
+
+/* Retrato (768 x 1024) */
+@media (orientation: portrait) {
+  #topo { -webkit-flex-direction: column; flex-direction: column; }
+  #agora { text-align: left; padding-top: 20px; }
+  #hora { font-size: 170px; }
+  #horas .h:nth-child(n+8) { display: none; }
+}
+/* Paisagem: menos horas para caber */
+@media (orientation: landscape) {
+  #horas .h:nth-child(n+9) { display: none; }
+}

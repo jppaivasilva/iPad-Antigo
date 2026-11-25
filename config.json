@@ -1,0 +1,11 @@
+{
+  "cidade": "São Paulo",
+  "latitude": -23.55,
+  "longitude": -46.63,
+  "max_noticias": 18,
+  "feeds": [
+    { "nome": "g1", "url": "https://g1.globo.com/rss/g1/" },
+    { "nome": "BBC Brasil", "url": "https://feeds.bbci.co.uk/portuguese/rss.xml" },
+    { "nome": "Google Notícias", "url": "https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419" }
+  ]
+}

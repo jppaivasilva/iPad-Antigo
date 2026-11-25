@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- Tela cheia quando aberto pelo ícone na Tela de Início -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Painel">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="painel">
+  <section id="topo">
+    <div id="relogio">
+      <div id="hora">--:--</div>
+      <div id="data">&nbsp;</div>
+    </div>
+    <div id="agora">
+      <div class="agora-linha">
+        <span id="agora-icone"></span>
+        <span id="agora-temp">--°</span>
+      </div>
+      <div id="agora-desc">Carregando…</div>
+      <div id="agora-extra"></div>
+      <div id="cidade"></div>
+    </div>
+  </section>
+
+  <section id="horas"></section>
+  <section id="dias"></section>
+
+  <section id="noticias">
+    <div class="titulo-secao">Notícias <span id="noticias-pag"></span></div>
+    <ul id="lista-noticias"></ul>
+  </section>
+
+  <div id="rodape"><span id="atualizado"></span></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
