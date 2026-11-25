@@ -77,7 +77,7 @@
   function $(id) { return document.getElementById(id); }
   function dois(n) { return (n < 10 ? '0' : '') + n; }
   function esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   /* Relógio independente do iPad: o iOS 9 tem regras de fuso desatualizadas
      (ainda aplica horário de verão no Brasil). Usamos a hora do servidor
@@ -220,8 +220,12 @@
     mostradas = 0;
     for (var i = inicio; i < noticias.length; i++) {
       var n = noticias[i], li = document.createElement('li');
-      li.innerHTML = '<span class="fonte">' + esc(n.fonte) + '</span>' + esc(n.titulo) +
-        '<span class="quando">' + haQuanto(n.quando) + '</span>';
+      // Miniatura só quando a notícia tem imagem (tamanho fixo no CSS,
+      // para a conta de "quantas cabem" não depender do carregamento)
+      li.className = n.imagem ? 'com-img' : '';
+      li.innerHTML = (n.imagem ? '<img class="mini" src="' + esc(n.imagem) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '') +
+        '<div class="texto"><span class="fonte">' + esc(n.fonte) + '</span>' + esc(n.titulo) +
+        '<span class="quando">' + haQuanto(n.quando) + '</span></div>';
       lista.appendChild(li);
       if (caixa.scrollHeight > caixa.clientHeight + 1 && mostradas > 0) { lista.removeChild(li); break; }
       mostradas++;

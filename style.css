@@ -13,7 +13,7 @@ body {
 }
 #painel {
   height: 100%;
-  padding: 24px 36px 10px;
+  padding: 18px 36px 8px;
   display: -webkit-flex; display: flex;
   -webkit-flex-direction: column; flex-direction: column;
   -webkit-transition: opacity 2s; transition: opacity 2s;
@@ -26,13 +26,13 @@ body.noite #painel { opacity: 0.35; }
   -webkit-justify-content: space-between; justify-content: space-between;
   -webkit-align-items: flex-start; align-items: flex-start;
 }
-#hora { font-size: 132px; line-height: 1; font-weight: 100; letter-spacing: -4px; }
+#hora { font-size: 118px; line-height: 1; font-weight: 100; letter-spacing: -4px; }
 #data { font-size: 30px; color: #9fb0c0; margin-top: 8px; }
 #data b { color: #e8edf2; font-weight: 400; }
 
 #agora { text-align: right; padding-top: 10px; }
-.agora-linha { font-size: 84px; line-height: 1; font-weight: 100; }
-#agora-icone { display: inline-block; width: 96px; height: 96px; margin-right: 6px; vertical-align: -14px; }
+.agora-linha { font-size: 76px; line-height: 1; font-weight: 100; }
+#agora-icone { display: inline-block; width: 84px; height: 84px; margin-right: 6px; vertical-align: -12px; }
 #agora-icone svg, .ic svg { width: 100%; height: 100%; display: block; }
 #agora-desc { font-size: 26px; margin-top: 6px; }
 #agora-extra { font-size: 19px; color: #9fb0c0; margin-top: 6px; line-height: 1.5; }
@@ -41,17 +41,17 @@ body.noite #painel { opacity: 0.35; }
 #horas, #dias {
   display: -webkit-flex; display: flex;
   border-top: 1px solid #1e2833;
-  margin-top: 12px; padding-top: 10px;
+  margin-top: 10px; padding-top: 8px;
 }
 #horas .h, #dias .d {
   -webkit-flex: 1; flex: 1;
   text-align: center;
 }
 .h .rot, .d .rot { font-size: 15px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 1px; }
-.h .ic { width: 44px; height: 44px; margin: 2px auto; }
+.h .ic { width: 38px; height: 38px; margin: 1px auto; }
 .h .t { font-size: 22px; }
 .h .chuva, .d .chuva { font-size: 13px; color: #5aa9e6; height: 16px; }
-.d .ic { width: 50px; height: 50px; margin: 2px auto; }
+.d .ic { width: 42px; height: 42px; margin: 1px auto; }
 .d .t { font-size: 20px; }
 .d .t .min { color: #6b7a8a; }
 #dias .d.hoje .rot { color: #f2c14e; }
@@ -66,7 +66,14 @@ body.noite #painel { opacity: 0.35; }
 .titulo-secao { font-size: 14px; color: #6b7a8a; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
 #lista-noticias { list-style: none; -webkit-transition: opacity .6s; transition: opacity .6s; }
 #lista-noticias.sumindo { opacity: 0; }
-#lista-noticias li { font-size: 21px; line-height: 1.3; padding: 9px 0; border-bottom: 1px solid #141b23; }
+#lista-noticias li { font-size: 22px; line-height: 1.3; padding: 10px 0; border-bottom: 1px solid #141b23; overflow: hidden; }
+#lista-noticias li.com-img { min-height: 95px; }
+#lista-noticias .mini {
+  float: left; width: 112px; height: 75px;
+  margin-right: 16px; border-radius: 6px;
+  background: #141b23;
+}
+#lista-noticias .texto { overflow: hidden; }
 #lista-noticias li:last-child { border-bottom: 0; }
 #lista-noticias .fonte { font-size: 13px; color: #f2c14e; text-transform: uppercase; letter-spacing: 1px; margin-right: 8px; font-weight: 400; }
 #lista-noticias .quando { font-size: 13px; color: #6b7a8a; margin-left: 6px; }
@@ -78,7 +85,8 @@ body.noite #painel { opacity: 0.35; }
 @media (orientation: portrait) {
   #topo { -webkit-flex-direction: column; flex-direction: column; }
   #agora { text-align: left; padding-top: 20px; }
-  #hora { font-size: 170px; }
+  #hora { font-size: 150px; }
+  #agora { padding-top: 12px; }
   #horas .h:nth-child(n+8) { display: none; }
 }
 /* Paisagem: menos horas para caber */

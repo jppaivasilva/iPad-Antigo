@@ -26,10 +26,12 @@ jobs:
           python-version: "3.12"
 
       - name: Baixar tempo e notícias
-        run: python scripts/gerar_dados.py
+        run: |
+          pip install --quiet pillow
+          python scripts/gerar_dados.py
 
       - name: Montar site
-        run: mkdir site && cp index.html style.css app.js data.json site/
+        run: mkdir site && cp -r index.html style.css app.js data.json img site/
 
       - name: Publicar no branch painel-site
         uses: peaceiris/actions-gh-pages@v4

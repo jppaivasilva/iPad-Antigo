@@ -5,7 +5,9 @@ Roda no GitHub Actions (ou localmente). Usa só a biblioteca padrão.
 O iPad só precisa ler esse JSON, que fica no mesmo site do painel:
 assim evitamos problemas de CORS e de certificados no Safari antigo.
 """
+import hashlib
 import html
+import io
 import json
 import os
 import re
@@ -18,6 +20,9 @@ from email.utils import parsedate_to_datetime
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
+PASTA_IMG = "img"          # miniaturas ficam em img/ junto da página
+TAM_MINI = (224, 150)      # o dobro do tamanho na tela (112 x 75)
+MEDIA = "{http://search.yahoo.com/mrss/}"
 UA = "Mozilla/5.0 (painel-ipad; +https://github.com)"
 
 
@@ -45,6 +50,65 @@ def limpar(texto):
     return re.sub(r"\s+", " ", html.unescape(texto)).strip()
 
 
+def imagem_do_item(item):
+    """Acha a URL da imagem de um item RSS (media:*, enclosure ou <img> na descrição)."""
+    candidatos = []
+    for tag in ("content", "thumbnail"):
+        for el in item.iter(MEDIA + tag):
+            url = el.get("url")
+            tipo = (el.get("type") or "") + (el.get("medium") or "")
+            if url and (tag == "thumbnail" or "image" in tipo or re.search(r"\.(jpe?g|png|webp)", url, re.I)):
+                candidatos.append(url)
+    for el in item.iter("enclosure"):
+        if el.get("url") and (el.get("type") or "").startswith("image"):
+            candidatos.append(el.get("url"))
+    for campo in ("description", "{http://purl.org/rss/1.0/modules/content/}encoded"):
+        m = re.search(r"<img[^>]+src=[\"']([^\"']+)", item.findtext(campo) or "", re.I)
+        if m:
+            candidatos.append(html.unescape(m.group(1)))
+    for url in candidatos:
+        if url.startswith("//"):
+            url = "https:" + url
+        if url.startswith("http"):
+            return url
+    return None
+
+
+def baixar_miniatura(url, pasta):
+    """Baixa e reduz a imagem; devolve o caminho relativo (ex.: img/ab12.jpg) ou None."""
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        return None  # sem Pillow não mandamos a imagem grande para o iPad
+    nome = hashlib.sha1(url.encode("utf-8")).hexdigest()[:12] + ".jpg"
+    destino = os.path.join(pasta, nome)
+    if not os.path.exists(destino):
+        try:
+            img = Image.open(io.BytesIO(baixar(url, timeout=15)))
+            img = ImageOps.fit(img.convert("RGB"), TAM_MINI, Image.LANCZOS)
+            img.save(destino, "JPEG", quality=72, optimize=True, progressive=False)
+        except Exception as e:
+            print("Falha na imagem", url, e, file=sys.stderr)
+            return None
+    return PASTA_IMG + "/" + nome
+
+
+def miniaturas(itens):
+    pasta = os.path.join(RAIZ, PASTA_IMG)
+    os.makedirs(pasta, exist_ok=True)
+    usadas = set()
+    for n in itens:
+        url = n.pop("imagem_url", None)
+        if url:
+            caminho = baixar_miniatura(url, pasta)
+            if caminho:
+                n["imagem"] = caminho
+                usadas.add(os.path.basename(caminho))
+    for nome in os.listdir(pasta):  # apaga miniaturas de notícias antigas
+        if nome.endswith(".jpg") and nome not in usadas:
+            os.remove(os.path.join(pasta, nome))
+
+
 def noticias(feed):
     raiz = ET.fromstring(baixar(feed["url"]))
     itens = []
@@ -65,7 +129,11 @@ def noticias(feed):
             except (TypeError, ValueError):
                 pass
         if titulo:
-            itens.append({"titulo": titulo, "fonte": fonte, "quando": quando})
+            n = {"titulo": titulo, "fonte": fonte, "quando": quando}
+            img = imagem_do_item(item)
+            if img:
+                n["imagem_url"] = img
+            itens.append(n)
     return itens
 
 
@@ -113,11 +181,14 @@ def main():
             listas.append(noticias(feed))
         except Exception as e:
             print("Falha no feed", feed["nome"], e, file=sys.stderr)
-    dados["noticias"] = intercalar(listas, cfg.get("max_noticias", 18)) or anterior.get("noticias", [])
+    selecionadas = intercalar(listas, cfg.get("max_noticias", 18))
+    miniaturas(selecionadas)
+    dados["noticias"] = selecionadas or anterior.get("noticias", [])
 
     with open(destino, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
-    print("OK:", len(dados["noticias"]), "notícias;", "tempo", "ok" if dados["tempo"] else "indisponível")
+    print("OK:", len(dados["noticias"]), "notícias,",
+          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", "tempo", "ok" if dados["tempo"] else "indisponível")
 
 
 if __name__ == "__main__":
