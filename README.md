@@ -1,15 +1,22 @@
 # iPad Antigo — painel de parede
 
 Transforma um iPad 2 (iOS 9, Safari 9) em um painel de parede com **relógio, data,
-tempo (agora, próximas horas e 6 dias) e notícias do dia**.
+tempo (agora, próximas horas e 6 dias), notícias do dia e um porta-retratos**
+com fotos de uma pasta do Google Drive.
 
 - Página estática, JavaScript ES5 puro — roda no Safari do iOS 9.
 - O GitHub Actions baixa tempo ([Open-Meteo](https://open-meteo.com), sem chave)
-  e notícias (RSS) a cada 30 min e grava `data.json` junto da página.
+  e notícias (RSS) a cada 30 min e grava `dados.txt` junto da página.
   O iPad lê esse arquivo do mesmo site, então não esbarra em CORS nem em
   certificados que o iOS 9 não conhece.
 - O iPad também tenta buscar o tempo direto no Open-Meteo a cada 15 min;
-  se não conseguir, usa o do `data.json`.
+  se não conseguir, usa o do `dados.txt`.
+- **Protegido por senha.** O site é público, mas sem a senha mostra só a tela
+  de login: `dados.txt` e as fotos vão cifrados (AES-CCM) e só abrem com a
+  senha. O iPad pede a senha uma vez e se lembra dela.
+- **Porta-retratos:** a cada 10 min a tela inteira mostra fotos por 1 min
+  (troca a cada 15 s). Não aparece das 23h às 6h. Um toque volta ao painel.
+  Para testar na hora, abra o endereço com `#fotos` no fim.
 - Escurece sozinho das 23h às 6h. **Toque** na tela para alternar claro/escuro;
   **toque duas vezes** para voltar ao automático.
 - O relógio não depende do fuso do iPad: usa a hora do servidor e o fuso
@@ -23,6 +30,29 @@ Latitude e longitude da sua cidade: procure em https://open-meteo.com/en/docs.
 
 Ajustes da tela (tempo de troca das notícias, horário noturno) ficam no topo de
 [`app.js`](app.js), no objeto `CONFIG`.
+
+## Senha e fotos (uma vez só, antes de publicar)
+
+Tudo em **Settings → Secrets and variables → Actions → New repository secret**.
+Sem `PAINEL_SENHA` o robô não publica nada.
+
+1. **`PAINEL_SENHA`**: a senha do painel. Use uma frase longa (ex.: quatro
+   palavras aleatórias). Trocar a senha faz o iPad pedir a nova.
+2. **Conta de serviço do Google** (é ela que lê a pasta, só leitura):
+   1. Em https://console.cloud.google.com crie um projeto (ex.: "painel-ipad").
+   2. **APIs e serviços → Biblioteca → Google Drive API → Ativar**.
+   3. **IAM e administrador → Contas de serviço → Criar**; dê um nome e
+      conclua sem papéis.
+   4. Na conta criada: **Chaves → Adicionar chave → JSON**. Baixa um arquivo.
+   5. Crie o segredo **`GDRIVE_CREDENCIAIS`** colando o conteúdo inteiro
+      desse arquivo. Depois apague o arquivo do computador.
+3. **Pasta das fotos:** no Google Drive, compartilhe a pasta com o e-mail da
+   conta de serviço (termina em `iam.gserviceaccount.com`) como **Leitor**.
+   Crie o segredo **`GDRIVE_PASTA`** com o código da pasta: o trecho depois de
+   `/folders/` no endereço dela.
+
+Fotos novas na pasta aparecem no painel em até 30 min (as 300 mais recentes;
+mude `max_fotos` em `config.json`). Fotos do iPhone (HEIC) funcionam.
 
 ## Publicar (uma vez só)
 
@@ -43,6 +73,8 @@ Impressão digital SHA-256: `96:BC:EC:06:…:BD:DF:08:C6`.
    pode fechar sozinho ou não salvar o ícone.
 1. Abra o endereço no Safari e toque em **Compartilhar → Adicionar à Tela de Início**.
    Abrindo pelo ícone, a página ocupa a tela inteira, sem barra do Safari.
+   Abra pelo ícone e digite a senha ali (o ícone guarda a senha separado do
+   Safari). A primeira entrada leva alguns segundos no iPad 2.
 2. **Ajustes → Geral → Bloqueio Automático → Nunca** (a tela não apaga).
 3. Opcional: **Ajustes → Geral → Acessibilidade → Acesso Guiado** para travar o
    iPad só no painel (três cliques no botão Início para ativar).
@@ -51,6 +83,6 @@ Impressão digital SHA-256: `96:BC:EC:06:…:BD:DF:08:C6`.
 ## Testar no computador
 
 ```sh
-python3 scripts/gerar_dados.py   # gera data.json
+PAINEL_SENHA=teste python3 scripts/gerar_dados.py   # gera dados.txt (fotos só com os segredos do Drive)
 python3 -m http.server 8000      # abra http://localhost:8000
 ```

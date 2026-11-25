@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="trancado">
 <head>
 <meta charset="utf-8">
 <title>Painel</title>
@@ -38,6 +38,20 @@
 
   <div id="rodape"><span id="atualizado"></span></div>
 </div>
+<!-- Porta-retratos: cobre a tela de tempos em tempos; um toque fecha -->
+<div id="retratos">
+  <div class="foto" id="foto-a"></div>
+  <div class="foto" id="foto-b"></div>
+  <div id="retratos-hora"></div>
+</div>
+<!-- Tela de senha: sem ela o painel não mostra nada (dados e fotos vão cifrados) -->
+<form id="entrada" autocomplete="off">
+  <div id="entrada-titulo">Painel</div>
+  <input id="entrada-senha" type="password" placeholder="Senha" autocapitalize="off" autocorrect="off">
+  <button id="entrada-botao" type="submit">Entrar</button>
+  <div id="entrada-msg"></div>
+</form>
+<script src="sjcl.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

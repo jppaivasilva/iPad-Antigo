@@ -25,13 +25,25 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Baixar tempo e notícias
+      # Fotos já reduzidas e cifradas ficam guardadas entre execuções,
+      # para não baixar tudo do Drive a cada 30 minutos.
+      - uses: actions/cache@v4
+        with:
+          path: retratos
+          key: retratos-${{ github.run_id }}
+          restore-keys: retratos-
+
+      - name: Baixar tempo, notícias e fotos
+        env:
+          PAINEL_SENHA: ${{ secrets.PAINEL_SENHA }}
+          GDRIVE_CREDENCIAIS: ${{ secrets.GDRIVE_CREDENCIAIS }}
+          GDRIVE_PASTA: ${{ secrets.GDRIVE_PASTA }}
         run: |
-          pip install --quiet pillow
+          pip install --quiet pillow pillow-heif cryptography google-auth requests
           python scripts/gerar_dados.py
 
       - name: Montar site
-        run: mkdir site && cp -r index.html style.css app.js data.json img site/
+        run: mkdir site && cp -r index.html style.css sjcl.js app.js dados.txt img retratos site/   # data.json (aberto) não vai
 
       - name: Publicar no branch painel-site
         uses: peaceiris/actions-gh-pages@v4
