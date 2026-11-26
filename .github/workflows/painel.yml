@@ -43,7 +43,13 @@ jobs:
           python scripts/gerar_dados.py
 
       - name: Montar site
-        run: mkdir site && cp -r index.html style.css sjcl.js app.js dados.txt img retratos site/   # data.json (aberto) não vai
+        run: |
+          mkdir site && cp -r index.html style.css sjcl.js app.js dados.txt img retratos site/   # data.json (aberto) não vai
+          # Versão no endereço dos arquivos: o atalho da Tela de Início guarda
+          # app.js/style.css antigos; com ?v= novo a cada mudança ele busca de novo.
+          v=$(cat index.html style.css sjcl.js app.js | sha1sum | cut -c1-8)
+          sed -i -E "s/(style\.css|sjcl\.js|app\.js)\"/\1?v=$v\"/g" site/index.html
+          grep -E "\?v=" site/index.html
 
       - name: Publicar no branch painel-site
         uses: peaceiris/actions-gh-pages@v4
