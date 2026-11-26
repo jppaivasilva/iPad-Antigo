@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Gera dados.txt (cifrado) com previsão do tempo, notícias e cotação do dólar.
+"""Gera dados.txt (cifrado) com previsão do tempo, notícias, cotação do dólar
+e próximos compromissos da agenda da Apple (iCloud).
 
 Roda no GitHub Actions (ou localmente). Usa só a biblioteca padrão.
 O iPad só precisa ler esse JSON, que fica no mesmo site do painel:
@@ -16,7 +17,7 @@ import sys
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -234,6 +235,57 @@ def fotos(cfg, chave):
     return saida
 
 
+def agenda(cfg, url):
+    """Próximos compromissos de uma agenda pública do iCloud (link webcal://).
+
+    Expande eventos que se repetem e devolve horários já no fuso da cidade,
+    no formato "2026-11-26T14:00", que o iPad lê sem depender do seu fuso.
+    """
+    import icalendar
+    import recurring_ical_events
+    from zoneinfo import ZoneInfo
+    fuso = ZoneInfo(cfg.get("fuso", "America/Sao_Paulo"))
+    if url.startswith("webcal://"):
+        url = "https://" + url[len("webcal://"):]
+    cal = icalendar.Calendar.from_ical(baixar(url, timeout=30))
+    agora = datetime.now(fuso)
+    hoje = agora.date()
+    ate = hoje + timedelta(days=cfg.get("dias_agenda", 14) + 1)
+
+    def local(v):
+        if isinstance(v, datetime):
+            if v.tzinfo is None:  # horário "flutuante": já é hora local
+                return v.replace(tzinfo=fuso)
+            return v.astimezone(fuso)
+        return datetime.combine(v, time(0, 0), fuso)  # dia inteiro
+
+    saida = []
+    for ev in recurring_ical_events.of(cal).between(hoje - timedelta(days=1), ate):
+        if str(ev.get("STATUS", "")).upper() == "CANCELLED":
+            continue
+        ini = ev.decoded("DTSTART")
+        dia_todo = not isinstance(ini, datetime)
+        if ev.get("DTEND") is not None:
+            fim = ev.decoded("DTEND")
+        elif ev.get("DURATION") is not None:
+            fim = ini + ev.decoded("DURATION")
+        else:
+            fim = ini + timedelta(days=1) if dia_todo else ini
+        ini, fim = local(ini), local(fim)
+        if fim <= agora and not (fim == ini and ini > agora - timedelta(hours=1)):
+            continue  # já terminou (sem duração: fica até 1 h depois)
+        lugar = limpar(str(ev.get("LOCATION", ""))).split(",")[0].strip()
+        e = {"titulo": limpar(str(ev.get("SUMMARY", ""))) or "(sem título)",
+             "inicio": ini.strftime("%Y-%m-%dT%H:%M"),
+             "fim": fim.strftime("%Y-%m-%dT%H:%M"),
+             "dia_todo": dia_todo}
+        if lugar:
+            e["local"] = lugar[:60]
+        saida.append(e)
+    saida.sort(key=lambda e: (e["inicio"], not e["dia_todo"], e["titulo"].lower()))
+    return saida[:cfg.get("max_eventos", 8)]
+
+
 def noticias(feed):
     raiz = ET.fromstring(baixar(feed["url"]))
     itens = []
@@ -330,13 +382,24 @@ def main():
         lista = [PASTA_RETRATOS + "/" + n for n in sorted(os.listdir(pasta))] if os.path.isdir(pasta) else []
     dados["fotos"] = lista
 
+    url_agenda = os.environ.get("AGENDA_APPLE_URL", "").strip()
+    if url_agenda:
+        try:
+            dados["agenda"] = agenda(cfg, url_agenda)
+        except Exception as e:  # iCloud fora do ar: mantém a última agenda boa
+            print("Falha na agenda:", e, file=sys.stderr)
+            dados["agenda"] = anterior.get("agenda")
+    else:
+        print("Agenda: AGENDA_APPLE_URL não configurado", file=sys.stderr)
+
     with open(destino, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
     # Só a versão cifrada vai para o site
     with open(os.path.join(RAIZ, "dados.txt"), "w") as f:
         f.write(cifrar(chave, json.dumps(dados, ensure_ascii=False, separators=(",", ":")).encode("utf-8")))
     print("OK:", len(dados["noticias"]), "notícias,",
-          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", len(dados["fotos"]), "fotos;", "tempo", "ok" if dados["tempo"] else "indisponível",
+          sum(1 for n in dados["noticias"] if n.get("imagem")), "com imagem;", len(dados["fotos"]), "fotos;",
+          len(dados["agenda"]) if dados.get("agenda") is not None else "sem", "compromissos;", "tempo", "ok" if dados["tempo"] else "indisponível",
           "· dólar", dados["dolar"]["valor"] if dados.get("dolar") else "indisponível")
 
 

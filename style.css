@@ -29,7 +29,7 @@ body {
 }
 
 /* Cartões (como os widgets do iOS) */
-#horas, #dias, #noticias {
+#horas, #dias, #noticias, #agenda {
   background: #161a22;
   background: rgba(255,255,255,0.09);
   border-radius: 16px;
@@ -75,12 +75,67 @@ body {
 .d .t .min { color: #8e8e93; }
 #horas .h:first-child .rot, #dias .d.hoje .rot { color: #fff; }
 
+/* Parte de baixo: agenda à esquerda, notícias à direita */
+#baixo {
+  -webkit-flex: 1; flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  display: -webkit-flex; display: flex;
+}
+#baixo #noticias, #baixo #agenda { margin-top: 0; }
+
+/* Agenda: como o widget "A seguir" do Calendário do iOS */
+#agenda {
+  width: 330px;
+  margin-right: 10px;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
+  padding: 10px 16px 0;
+  overflow: hidden;
+}
+html.sem-agenda #agenda { display: none; }
+.ag-dia {
+  font-size: 13px; font-weight: 700; color: #ff453a;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 0 2px;
+}
+.ag-dia.outro { color: #8e8e93; }
+.ag-ev {
+  display: -webkit-flex; display: flex;
+  padding: 6px 0;
+}
+.ag-ev .barra {
+  width: 4px; border-radius: 2px; background: #0a84ff;
+  margin-right: 10px;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
+}
+.ag-ev .hr {
+  width: 58px;
+  -webkit-flex-shrink: 0; flex-shrink: 0;
+  font-size: 17px; font-weight: 600; line-height: 1.25;
+}
+.ag-ev .hr small { display: block; font-size: 14px; font-weight: 400; color: #8e8e93; }
+.ag-ev .hr.todo { font-size: 13px; color: #8e8e93; font-weight: 600; padding-top: 2px; line-height: 1.2; }
+.ag-ev .tx { -webkit-flex: 1; flex: 1; min-width: 0; }
+.ag-ev .nome {
+  font-size: 18px; font-weight: 500; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ag-ev .lugar {
+  font-size: 14px; color: #8e8e93; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ag-ev.agora .barra { background: #30d158; }
+.ag-ev.agora .hr { color: #30d158; }
+.ag-vazio { font-size: 17px; color: #8e8e93; padding: 14px 0; }
+.ag-mais { font-size: 13px; color: #8e8e93; padding: 4px 0 0 14px; }
+
 /* Notícias: lista agrupada, como em Ajustes/Notícias */
 #noticias {
   -webkit-flex: 1; flex: 1;
   padding: 10px 16px 0;
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
 }
 .titulo-secao {
   font-size: 13px; color: #8e8e93; font-weight: 600;
@@ -238,6 +293,7 @@ html.trancado #entrada {
   #agora { text-align: left; padding-top: 12px; }
   #hora { font-size: 140px; }
   #horas .h:nth-child(n+8) { display: none; }
+  #agenda { width: 290px; }
   /* relógio noturno: um cartão em cima do outro */
   #flip { width: 600px; height: 900px; margin: -450px 0 0 -300px; }
   .cartao { width: 600px; height: 430px; font-size: 330px; }
