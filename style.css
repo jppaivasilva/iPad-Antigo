@@ -27,8 +27,6 @@ body {
   -webkit-flex-direction: column; flex-direction: column;
   -webkit-transition: opacity 2s; transition: opacity 2s;
 }
-/* Modo noite: escurece (alternável tocando na tela) */
-body.noite #painel { opacity: 0.35; }
 
 /* Cartões (como os widgets do iOS) */
 #horas, #dias, #noticias {
@@ -157,6 +155,62 @@ html.trancado #pontos { display: none; }
   text-shadow: 0 1px 6px rgba(0,0,0,0.8);
 }
 
+/* Modo noturno: relógio de cartões que viram (flip clock), tela inteira.
+   Cada cartão tem 4 metades: as duas fixas mostram o número novo em cima e
+   o velho embaixo; na virada, a aba de cima (número velho) cai até ficar de
+   lado e a aba de baixo (número novo) termina de cair. Só transform 3D com
+   prefixo -webkit-, que o Safari 9 anima pela placa de vídeo. */
+#noturno {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: #000;
+  z-index: 10;
+  opacity: 0;
+  -webkit-transition: opacity .8s; transition: opacity .8s;
+}
+#noturno.ligado { display: block; }
+#noturno.visivel { opacity: 1; }
+#flip {
+  position: absolute; top: 50%; left: 50%;
+  width: 920px; height: 400px; margin: -200px 0 0 -460px;
+}
+.cartao {
+  position: relative; float: left;
+  width: 440px; height: 400px;
+  -webkit-perspective: 1400px; perspective: 1400px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700; font-size: 300px; letter-spacing: -6px;
+  color: #d9d9d9;
+}
+#cartao-m { margin-left: 40px; }
+.cartao .metade, .cartao .aba {
+  position: absolute; left: 0; right: 0; height: 50%;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+.cartao .cima { top: 0; border-radius: 26px 26px 0 0; }
+.cartao .baixo { bottom: 0; border-radius: 0 0 26px 26px; background: #161616; }
+.cartao span { display: block; height: 400px; line-height: 400px; text-align: center; }
+.cartao .baixo span { margin-top: -200px; }
+/* risco do meio, onde o cartão dobra */
+.cartao:after {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%;
+  height: 4px; margin-top: -2px; background: #000; z-index: 4;
+}
+.cartao .aba {
+  display: none; z-index: 3;
+  -webkit-backface-visibility: hidden; backface-visibility: hidden;
+}
+.cartao .aba.cima { -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%; }
+.cartao .aba.baixo { -webkit-transform-origin: 50% 0; transform-origin: 50% 0; -webkit-transform: rotateX(90deg); transform: rotateX(90deg); }
+.cartao.virando .aba { display: block; }
+.cartao.virando .aba.cima { -webkit-animation: cai-cima .3s ease-in both; animation: cai-cima .3s ease-in both; }
+.cartao.virando .aba.baixo { -webkit-animation: cai-baixo .3s .3s ease-out both; animation: cai-baixo .3s .3s ease-out both; }
+@-webkit-keyframes cai-cima { from { -webkit-transform: rotateX(0); background: #1a1a1a; } to { -webkit-transform: rotateX(-90deg); background: #0d0d0d; } }
+@keyframes cai-cima { from { transform: rotateX(0); background: #1a1a1a; } to { transform: rotateX(-90deg); background: #0d0d0d; } }
+@-webkit-keyframes cai-baixo { from { -webkit-transform: rotateX(90deg); background: #0b0b0b; } to { -webkit-transform: rotateX(0); background: #161616; } }
+@keyframes cai-baixo { from { transform: rotateX(90deg); background: #0b0b0b; } to { transform: rotateX(0); background: #161616; } }
+
 /* Tela de senha (como o "Digite a senha" do iOS) */
 #entrada { display: none; }
 html.trancado #painel, html.trancado #retratos { visibility: hidden; }
@@ -184,6 +238,12 @@ html.trancado #entrada {
   #agora { text-align: left; padding-top: 12px; }
   #hora { font-size: 140px; }
   #horas .h:nth-child(n+8) { display: none; }
+  /* relógio noturno: um cartão em cima do outro */
+  #flip { width: 600px; height: 900px; margin: -450px 0 0 -300px; }
+  .cartao { width: 600px; height: 430px; font-size: 330px; }
+  .cartao span { height: 430px; line-height: 430px; }
+  .cartao .baixo span { margin-top: -215px; }
+  #cartao-m { margin: 40px 0 0 0; }
 }
 /* Paisagem: menos horas para caber */
 @media (orientation: landscape) {
