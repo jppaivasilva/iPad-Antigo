@@ -18,8 +18,10 @@ com fotos de uma pasta do Google Drive.
   fotos, que trocam a cada 15 s como um slide. **Deslize para a direita** para
   voltar. Os pontinhos no rodapé mostram em qual tela você está.
   Para testar na hora, abra o endereço com `#fotos` no fim.
-- Escurece sozinho das 23h às 6h. **Toque** na tela para alternar claro/escuro;
-  **toque duas vezes** para voltar ao automático.
+- **Modo noturno:** das 23h às 6h a tela vira um relógio grande de cartões
+  pretos com números brancos que viram a cada minuto (flip clock). **Toque**
+  para voltar ao painel; à noite o relógio volta sozinho depois de 5 min sem
+  tocar. De dia, um toque no painel abre o relógio e outro fecha.
 - O relógio não depende do fuso do iPad: usa a hora do servidor e o fuso
   da cidade (o iOS 9 ainda acha que o Brasil tem horário de verão).
 - Recarrega a página a cada 6 h para o Safari antigo não acumular memória.

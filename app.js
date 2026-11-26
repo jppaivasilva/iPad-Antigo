@@ -7,8 +7,9 @@
     recarregarDadosMin: 10,
     tempoAoVivoMin: 15,
     recarregarPaginaHoras: 6,   // evita vazamento de memória no Safari antigo
-    noiteInicio: 23,            // escurece automaticamente das 23h…
-    noiteFim: 6,                // …até as 6h
+    noiteInicio: 23,            // relógio noturno entra sozinho às 23h…
+    noiteFim: 6,                // …e sai às 6h
+    noiteVoltaMin: 5,           // à noite, depois de sair com um toque, volta após 5 min parado
     retratosTrocaSeg: 15        // fotos (deslize para a esquerda) trocam a cada 15 s
   };
 
@@ -112,21 +113,72 @@
   }
 
   /* ---------- Relógio ---------- */
-  var noiteManual = null; // null = automático
+  var horaMostrada = '';
   function tique() {
     var d = agoraLocal();
-    $('hora').innerHTML = $('retratos-hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes());
-    $('data').innerHTML = '<b>' + DIAS[d.getUTCDay()] + '</b>, ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
+    var hh = dois(d.getUTCHours()), mm = dois(d.getUTCMinutes());
+    if (hh + mm !== horaMostrada) {
+      horaMostrada = hh + mm;
+      $('hora').innerHTML = $('retratos-hora').innerHTML = hh + ':' + mm;
+      $('data').innerHTML = '<b>' + DIAS[d.getUTCDay()] + '</b>, ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
+      virar('cartao-h', hh);
+      virar('cartao-m', mm);
+    }
     var h = d.getUTCHours();
-    var noiteAuto = CONFIG.noiteInicio > CONFIG.noiteFim
+    var noite = CONFIG.noiteInicio > CONFIG.noiteFim
       ? (h >= CONFIG.noiteInicio || h < CONFIG.noiteFim)
       : (h >= CONFIG.noiteInicio && h < CONFIG.noiteFim);
-    var noite = noiteManual === null ? noiteAuto : noiteManual;
-    document.body.className = noite ? 'noite' : '';
+    if (noite !== eraNoite) { eraNoite = noite; noturnoManual = null; } // 23h e 6h: volta ao automático
+    if (noite && noturnoManual === false && !retratosAbertos &&
+        Date.now() - ultimoToque > CONFIG.noiteVoltaMin * 60000) noturnoManual = null;
+    mostrarNoturno(chave !== null && (noturnoManual === null ? noite : noturnoManual));
     setTimeout(tique, 1000 - (agoraMs() % 1000));
   }
+
+  /* ---------- Modo noturno: relógio de cartões que viram ---------- */
+  // Entra sozinho das 23h às 6h. Um toque sai; à noite ele volta depois de
+  // alguns minutos sem tocar. De dia, um toque no painel abre o relógio.
+  var noturnoManual = null, eraNoite = null, noturnoLigado = false;
+  function metades(cls, v) {
+    return '<div class="' + cls + '"><span>' + v + '</span></div>';
+  }
+  function virar(id, v) {
+    var c = $(id), antes = c.getAttribute('data-v');
+    if (antes === v) return;
+    c.setAttribute('data-v', v);
+    if (antes === null || !noturnoLigado) { // sem animação (primeira vez ou escondido)
+      c.className = 'cartao';
+      c.innerHTML = metades('metade cima', v) + metades('metade baixo', v);
+      return;
+    }
+    // fixas: novo em cima, velho embaixo; abas: velho caindo, depois o novo
+    c.className = 'cartao';
+    c.innerHTML = metades('metade cima', v) + metades('metade baixo', antes) +
+      metades('aba cima', antes) + metades('aba baixo', v);
+    void c.offsetWidth; // reinicia a animação
+    c.className = 'cartao virando';
+    setTimeout(function () {
+      if (c.getAttribute('data-v') !== v) return;
+      c.className = 'cartao';
+      c.innerHTML = metades('metade cima', v) + metades('metade baixo', v);
+    }, 700);
+  }
+  function mostrarNoturno(sim) {
+    if (sim === noturnoLigado) return;
+    noturnoLigado = sim;
+    var n = $('noturno');
+    if (sim) {
+      fecharRetratos(); // não fica decifrando fotos por baixo
+      n.className = 'ligado';
+      setTimeout(function () { if (noturnoLigado) n.className = 'ligado visivel'; }, 30);
+    } else {
+      n.className = 'ligado';
+      setTimeout(function () { if (!noturnoLigado) n.className = ''; }, 800);
+    }
+  }
+
   // Deslizar para a esquerda abre as fotos; para a direita volta ao painel.
-  // Um toque no painel alterna claro/escuro; dois toques voltam ao automático.
+  // Um toque no relógio noturno sai dele; um toque no painel abre o relógio.
   var ultimoToque = 0, toqueX = 0, toqueY = 0;
   document.addEventListener('touchstart', function (e) {
     var t = e.touches[0]; toqueX = t.clientX; toqueY = t.clientY;
@@ -136,17 +188,16 @@
   }, false);
   document.addEventListener('touchend', function (e) {
     if (!chave) return; // tela de senha
+    ultimoToque = Date.now();
+    if (noturnoLigado) { noturnoManual = false; mostrarNoturno(false); return; }
     var t = e.changedTouches[0], dx = t.clientX - toqueX, dy = t.clientY - toqueY;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { // deslizou
       if (dx < 0) abrirRetratos(); else fecharRetratos();
-      ultimoToque = 0;
       return;
     }
     if (Math.abs(dx) > 15 || Math.abs(dy) > 15 || retratosAbertos) return; // só toque no painel
-    var agora = Date.now();
-    if (agora - ultimoToque < 400) { noiteManual = null; }
-    else { noiteManual = document.body.className !== 'noite'; }
-    ultimoToque = agora;
+    noturnoManual = true;
+    mostrarNoturno(true);
   }, false);
 
   /* ---------- Tempo ---------- */
