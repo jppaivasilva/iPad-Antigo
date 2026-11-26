@@ -2,6 +2,9 @@
   "cidade": "São Paulo",
   "latitude": -23.55,
   "longitude": -46.63,
+  "fuso": "America/Sao_Paulo",
+  "dias_agenda": 14,
+  "max_eventos": 8,
   "max_noticias": 18,
   "feeds": [
     { "nome": "g1", "url": "https://g1.globo.com/rss/g1/" },

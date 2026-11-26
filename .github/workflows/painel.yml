@@ -33,13 +33,14 @@ jobs:
           key: retratos-${{ github.run_id }}
           restore-keys: retratos-
 
-      - name: Baixar tempo, notícias e fotos
+      - name: Baixar tempo, notícias, fotos e agenda
         env:
           PAINEL_SENHA: ${{ secrets.PAINEL_SENHA }}
           GDRIVE_CREDENCIAIS: ${{ secrets.GDRIVE_CREDENCIAIS }}
           GDRIVE_PASTA: ${{ secrets.GDRIVE_PASTA }}
+          AGENDA_APPLE_URL: ${{ secrets.AGENDA_APPLE_URL }}
         run: |
-          pip install --quiet pillow pillow-heif cryptography google-auth requests
+          pip install --quiet pillow pillow-heif cryptography google-auth requests icalendar recurring-ical-events
           python scripts/gerar_dados.py
 
       - name: Montar site

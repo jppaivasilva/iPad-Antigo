@@ -1,7 +1,8 @@
 # iPad Antigo — painel de parede
 
 Transforma um iPad 2 (iOS 9, Safari 9) em um painel de parede com **relógio, data,
-tempo (agora, próximas horas e 6 dias), notícias do dia e um porta-retratos**
+tempo (agora, próximas horas e 6 dias), próximos compromissos da agenda da Apple,
+notícias do dia e um porta-retratos**
 com fotos de uma pasta do Google Drive.
 
 - Página estática, JavaScript ES5 puro — roda no Safari do iOS 9.
@@ -53,6 +54,13 @@ Sem `PAINEL_SENHA` o robô não publica nada.
    conta de serviço (termina em `iam.gserviceaccount.com`) como **Leitor**.
    Crie o segredo **`GDRIVE_PASTA`** com o código da pasta: o trecho depois de
    `/folders/` no endereço dela.
+
+4. **Agenda da Apple (iCloud):** no iPhone, app **Calendário → Calendários →
+   ⓘ** da agenda → ligue **Calendário Público** → **Compartilhar Link… →
+   Copiar**. Crie o segredo **`AGENDA_APPLE_URL`** colando esse link
+   (começa com `webcal://`). Os compromissos dos próximos 14 dias aparecem
+   no cartão **Agenda**, cifrados como o resto (mude `dias_agenda` e
+   `max_eventos` em `config.json`). Sem esse segredo o cartão some.
 
 Fotos novas na pasta aparecem no painel em até 30 min (as 300 mais recentes;
 mude `max_fotos` em `config.json`). Fotos do iPhone (HEIC) funcionam.

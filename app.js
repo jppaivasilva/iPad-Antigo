@@ -123,6 +123,7 @@
       $('data').innerHTML = '<b>' + DIAS[d.getUTCDay()] + '</b>, ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
       virar('cartao-h', hh);
       virar('cartao-m', mm);
+      if (agenda) mostrarAgenda(); // tira o que já terminou
     }
     var h = d.getUTCHours();
     var noite = CONFIG.noiteInicio > CONFIG.noiteFim
@@ -326,6 +327,71 @@
     $('dolar').innerHTML = html;
   }
 
+  /* ---------- Agenda (iCloud) ---------- */
+  // Próximos compromissos, agrupados por dia. Os horários já vêm no fuso da
+  // cidade ("2026-11-26T14:00"), então lemos com dataLocal/getUTC*.
+  // Mostra quantos couberem no cartão e some quando a agenda não está
+  // configurada.
+  var agenda = null;
+  function hm(d) { return dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes()); }
+  function nomeDia(d, hoje) {
+    var n = Math.round((d.getTime() - hoje.getTime()) / 86400000);
+    if (n <= 0) return 'Hoje';
+    if (n === 1) return 'Amanhã';
+    return DIAS_CURTOS[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()].slice(0, 3);
+  }
+  function mostrarAgenda() {
+    var caixa = $('agenda'), lista = $('lista-agenda');
+    if (!agenda) { caixa.style.display = 'none'; return; }
+    caixa.style.display = '';
+    var agora = agoraLocal();
+    var hoje = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate()));
+    var diaAtual = null, n = 0, i;
+    lista.innerHTML = '';
+    for (i = 0; i < agenda.length; i++) {
+      var e = agenda[i], ini = dataLocal(e.inicio), fim = dataLocal(e.fim);
+      var fimVale = fim.getTime() > ini.getTime() ? fim.getTime() : ini.getTime() + 3600000;
+      if (fimVale <= agora.getTime()) continue; // já terminou
+      var dia = ini.getTime() < hoje.getTime() ? hoje :
+        new Date(Date.UTC(ini.getUTCFullYear(), ini.getUTCMonth(), ini.getUTCDate()));
+      var rotulo = nomeDia(dia, hoje), cab = null;
+      if (rotulo !== diaAtual) {
+        cab = document.createElement('div');
+        cab.className = 'ag-dia' + (rotulo === 'Hoje' ? '' : ' outro');
+        cab.innerHTML = rotulo;
+        lista.appendChild(cab);
+      }
+      var hora, extra = e.local ? esc(e.local) : '', agoraSim = false;
+      if (e.dia_todo) {
+        hora = '<div class="hr todo">dia<br>todo</div>';
+        var ultimo = new Date(fim.getTime() - 86400000);
+        if (ultimo.getTime() > dia.getTime()) {
+          extra = 'até ' + (Math.round((ultimo.getTime() - hoje.getTime()) / 86400000) === 1 ? 'amanhã' :
+            DIAS_CURTOS[ultimo.getUTCDay()] + ', ' + ultimo.getUTCDate()) + (extra ? ' · ' + extra : '');
+        }
+      } else {
+        agoraSim = ini.getTime() <= agora.getTime();
+        hora = '<div class="hr">' + (ini.getTime() < dia.getTime() ? '…' : hm(ini)) +
+          (fim.getTime() > ini.getTime() ? '<small>' + hm(fim) + '</small>' : '') + '</div>';
+      }
+      var linha = document.createElement('div');
+      linha.className = 'ag-ev' + (agoraSim ? ' agora' : '');
+      linha.innerHTML = '<div class="barra"></div>' + hora +
+        '<div class="tx"><div class="nome">' + esc(e.titulo) + '</div>' +
+        (extra ? '<div class="lugar">' + extra + '</div>' : '') + '</div>';
+      lista.appendChild(linha);
+      if (caixa.scrollHeight > caixa.clientHeight + 1 && n > 0) { // não coube
+        lista.removeChild(linha);
+        if (cab) lista.removeChild(cab);
+        break;
+      }
+      if (cab) diaAtual = rotulo;
+      n++;
+    }
+    if (!n) lista.innerHTML = '<div class="ag-vazio">Nada marcado nos próximos dias.</div>';
+  }
+  window.addEventListener('orientationchange', function () { setTimeout(mostrarAgenda, 500); }, false);
+
   /* ---------- Porta-retratos ---------- */
   // Segunda tela: deslize o painel para a esquerda. Só dois elementos de
   // imagem, reaproveitados (o Safari antigo tem pouca memória); ao voltar
@@ -462,6 +528,8 @@
     $('cidade').innerHTML = esc(d.cidade || '');
     if (!vivoOk) mostrarTempo(d.tempo);
     mostrarDolar(d.dolar);
+    agenda = d.agenda || null;
+    mostrarAgenda();
     if (d.noticias && d.noticias.length) {
       var primeira = !noticias.length;
       noticias = d.noticias;
