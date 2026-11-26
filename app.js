@@ -9,9 +9,7 @@
     recarregarPaginaHoras: 6,   // evita vazamento de memória no Safari antigo
     noiteInicio: 23,            // escurece automaticamente das 23h…
     noiteFim: 6,                // …até as 6h
-    retratosACadaMin: 10,       // porta-retratos entra a cada 10 min…
-    retratosDuracaoSeg: 60,     // …fica 1 min na tela…
-    retratosTrocaSeg: 15        // …e troca de foto a cada 15 s
+    retratosTrocaSeg: 15        // fotos (deslize para a esquerda) trocam a cada 15 s
   };
 
   var DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
@@ -115,7 +113,6 @@
 
   /* ---------- Relógio ---------- */
   var noiteManual = null; // null = automático
-  var ehNoite = false;    // sem porta-retratos de madrugada nem no modo escuro
   function tique() {
     var d = agoraLocal();
     $('hora').innerHTML = $('retratos-hora').innerHTML = dois(d.getUTCHours()) + ':' + dois(d.getUTCMinutes());
@@ -125,16 +122,28 @@
       ? (h >= CONFIG.noiteInicio || h < CONFIG.noiteFim)
       : (h >= CONFIG.noiteInicio && h < CONFIG.noiteFim);
     var noite = noiteManual === null ? noiteAuto : noiteManual;
-    ehNoite = noiteAuto || noite;
     document.body.className = noite ? 'noite' : '';
     setTimeout(tique, 1000 - (agoraMs() % 1000));
   }
-  // Tocar na tela alterna claro/escuro; dois toques voltam ao automático
-  var ultimoToque = 0;
-  document.addEventListener('touchend', function () {
+  // Deslizar para a esquerda abre as fotos; para a direita volta ao painel.
+  // Um toque no painel alterna claro/escuro; dois toques voltam ao automático.
+  var ultimoToque = 0, toqueX = 0, toqueY = 0;
+  document.addEventListener('touchstart', function (e) {
+    var t = e.touches[0]; toqueX = t.clientX; toqueY = t.clientY;
+  }, false);
+  document.addEventListener('touchmove', function (e) {
+    if (chave) e.preventDefault(); // sem "elástico" da página (fora da tela de senha)
+  }, false);
+  document.addEventListener('touchend', function (e) {
     if (!chave) return; // tela de senha
+    var t = e.changedTouches[0], dx = t.clientX - toqueX, dy = t.clientY - toqueY;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) { // deslizou
+      if (dx < 0) abrirRetratos(); else fecharRetratos();
+      ultimoToque = 0;
+      return;
+    }
+    if (Math.abs(dx) > 15 || Math.abs(dy) > 15 || retratosAbertos) return; // só toque no painel
     var agora = Date.now();
-    if (fecharRetratos()) { ultimoToque = 0; return; } // toque só fecha as fotos
     if (agora - ultimoToque < 400) { noiteManual = null; }
     else { noiteManual = document.body.className !== 'noite'; }
     ultimoToque = agora;
@@ -267,9 +276,10 @@
   }
 
   /* ---------- Porta-retratos ---------- */
-  // Só dois elementos de imagem, reaproveitados: o Safari antigo tem pouca
-  // memória. Ao fechar, as imagens são descarregadas.
-  var fotos = [], filaFotos = [], retratosAbertos = false, timerTroca = null, timerFim = null, camadaA = true;
+  // Segunda tela: deslize o painel para a esquerda. Só dois elementos de
+  // imagem, reaproveitados (o Safari antigo tem pouca memória); ao voltar
+  // para o painel, as imagens são descarregadas.
+  var fotos = [], filaFotos = [], retratosAbertos = false, timerTroca = null, camadaA = true;
   function proximaFoto() {
     if (!filaFotos.length) {
       filaFotos = fotos.slice(0);
@@ -303,27 +313,31 @@
     });
   }
   function abrirRetratos() {
-    if (retratosAbertos || !fotos.length || ehNoite) return;
+    if (retratosAbertos) return;
     retratosAbertos = true;
     var r = $('retratos');
+    $('retratos-vazio').style.display = fotos.length ? 'none' : 'block';
     r.className = 'ligado';
-    setTimeout(function () { if (retratosAbertos) r.className = 'ligado visivel'; }, 50);
-    trocarFoto();
-    timerTroca = setInterval(trocarFoto, CONFIG.retratosTrocaSeg * 1000);
-    timerFim = setTimeout(fecharRetratos, CONFIG.retratosDuracaoSeg * 1000);
+    $('pontos').className = 'fotos';
+    setTimeout(function () { if (retratosAbertos) r.className = 'ligado dentro'; }, 30);
+    if (fotos.length) {
+      trocarFoto();
+      timerTroca = setInterval(trocarFoto, CONFIG.retratosTrocaSeg * 1000);
+    }
   }
   function fecharRetratos() {
     if (!retratosAbertos) return false;
     retratosAbertos = false;
-    clearInterval(timerTroca); clearTimeout(timerFim);
+    clearInterval(timerTroca);
     var r = $('retratos');
     r.className = 'ligado';
+    $('pontos').className = '';
     setTimeout(function () {
       if (retratosAbertos) return;
       r.className = '';
       $('foto-a').style.backgroundImage = $('foto-b').style.backgroundImage = 'none';
       $('foto-a').className = $('foto-b').className = 'foto';
-    }, 1600);
+    }, 500);
     return true;
   }
 
@@ -422,6 +436,5 @@
   setInterval(carregarDados, CONFIG.recarregarDadosMin * 60000);
   setInterval(tempoAoVivo, CONFIG.tempoAoVivoMin * 60000);
   setInterval(proximaPagina, CONFIG.trocaNoticiasSeg * 1000);
-  setInterval(abrirRetratos, CONFIG.retratosACadaMin * 60000);
   setTimeout(function () { location.reload(); }, CONFIG.recarregarPaginaHoras * 3600000);
 })();
