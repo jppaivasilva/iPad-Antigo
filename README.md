@@ -14,8 +14,9 @@ com fotos de uma pasta do Google Drive.
 - **Protegido por senha.** O site é público, mas sem a senha mostra só a tela
   de login: `dados.txt` e as fotos vão cifrados (AES-CCM) e só abrem com a
   senha. O iPad pede a senha uma vez e se lembra dela.
-- **Porta-retratos:** a cada 10 min a tela inteira mostra fotos por 1 min
-  (troca a cada 15 s). Não aparece das 23h às 6h. Um toque volta ao painel.
+- **Porta-retratos:** **deslize o painel para a esquerda** e entra a tela de
+  fotos, que trocam a cada 15 s como um slide. **Deslize para a direita** para
+  voltar. Os pontinhos no rodapé mostram em qual tela você está.
   Para testar na hora, abra o endereço com `#fotos` no fim.
 - Escurece sozinho das 23h às 6h. **Toque** na tela para alternar claro/escuro;
   **toque duas vezes** para voltar ao automático.
