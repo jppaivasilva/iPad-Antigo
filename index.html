@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="trancado">
+<head>
+<meta charset="utf-8">
+<title>Painel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- Tela cheia quando aberto pelo ícone na Tela de Início -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Painel">
+<link rel="stylesheet" href="style.css?v=90518aa0">
+</head>
+<body>
+<div id="painel">
+  <section id="topo">
+    <div id="relogio">
+      <div id="hora">--:--</div>
+      <div id="data">&nbsp;</div>
+    </div>
+    <div id="agora">
+      <div class="agora-linha">
+        <span id="agora-icone"></span>
+        <span id="agora-temp">--°</span>
+      </div>
+      <div id="agora-desc">Carregando…</div>
+      <div id="agora-extra"></div>
+      <div id="cidade"></div>
+    </div>
+  </section>
+
+  <section id="horas"></section>
+  <section id="dias"></section>
+
+  <div id="baixo">
+    <!-- Agenda da Apple (iCloud): próximos compromissos -->
+    <section id="agenda">
+      <div class="titulo-secao">Agenda</div>
+      <div id="lista-agenda"></div>
+    </section>
+    <section id="noticias">
+      <div class="titulo-secao"><span id="dolar"></span>Notícias <span id="noticias-pag"></span></div>
+      <ul id="lista-noticias"></ul>
+    </section>
+  </div>
+
+  <div id="rodape"><span id="atualizado"></span></div>
+</div>
+<!-- Fotos: segunda tela; deslize para a esquerda para abrir e para a direita para voltar -->
+<div id="retratos">
+  <div class="foto" id="foto-a"></div>
+  <div class="foto" id="foto-b"></div>
+  <div id="retratos-vazio">Nenhuma foto na pasta ainda.</div>
+  <div id="retratos-hora"></div>
+</div>
+<!-- Modo noturno: relógio grande de cartões que viram (toque para sair) -->
+<div id="noturno">
+  <div id="flip">
+    <div class="cartao" id="cartao-h"></div>
+    <div class="cartao" id="cartao-m"></div>
+  </div>
+</div>
+<div id="pontos"><span></span><span></span></div>
+<!-- Tela de senha: sem ela o painel não mostra nada (dados e fotos vão cifrados) -->
+<form id="entrada" autocomplete="off">
+  <div id="entrada-titulo">Painel</div>
+  <input id="entrada-senha" type="password" placeholder="Senha" autocapitalize="off" autocorrect="off">
+  <button id="entrada-botao" type="submit">Entrar</button>
+  <div id="entrada-msg"></div>
+</form>
+<script src="sjcl.js?v=90518aa0"></script>
+<script src="app.js?v=90518aa0"></script>
+</body>
+</html>
