@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Relógio</title>
+<!-- Relógio de cartões que viram, sozinho, para o iPhone 5S (iOS 12).
+     Mesmo relógio do modo noturno do painel; não usa senha nem dados. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Relógio">
+<style>
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+/* Tamanhos em px são calculados pelo script conforme a tela (retrato ou paisagem) */
+#flip { position: absolute; top: 50%; left: 50%; }
+.cartao {
+  position: absolute;
+  -webkit-perspective: 800px; perspective: 800px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700; color: #d9d9d9;
+}
+.cartao .metade, .cartao .aba {
+  position: absolute; left: 0; right: 0; height: 50%;
+  overflow: hidden; background: #1a1a1a;
+}
+.cartao .cima { top: 0; }
+.cartao .baixo { bottom: 0; background: #161616; }
+.cartao span { display: block; text-align: center; }
+/* risco do meio, onde o cartão dobra */
+.cartao:after {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%;
+  height: 2px; margin-top: -1px; background: #000; z-index: 4;
+}
+.cartao .aba { display: none; z-index: 3; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.cartao .aba.cima { -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%; }
+.cartao .aba.baixo { -webkit-transform-origin: 50% 0; transform-origin: 50% 0; -webkit-transform: rotateX(90deg); transform: rotateX(90deg); }
+.cartao.virando .aba { display: block; }
+.cartao.virando .aba.cima { -webkit-animation: cai-cima .3s ease-in both; animation: cai-cima .3s ease-in both; }
+.cartao.virando .aba.baixo { -webkit-animation: cai-baixo .3s .3s ease-out both; animation: cai-baixo .3s .3s ease-out both; }
+@-webkit-keyframes cai-cima { from { -webkit-transform: rotateX(0); background: #1a1a1a; } to { -webkit-transform: rotateX(-90deg); background: #0d0d0d; } }
+@keyframes cai-cima { from { transform: rotateX(0); background: #1a1a1a; } to { transform: rotateX(-90deg); background: #0d0d0d; } }
+@-webkit-keyframes cai-baixo { from { -webkit-transform: rotateX(90deg); background: #0b0b0b; } to { -webkit-transform: rotateX(0); background: #161616; } }
+@keyframes cai-baixo { from { transform: rotateX(90deg); background: #0b0b0b; } to { transform: rotateX(0); background: #161616; } }
+</style>
+</head>
+<body>
+<div id="flip">
+  <div class="cartao" id="cartao-h"></div>
+  <div class="cartao" id="cartao-m"></div>
+</div>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function dois(n) { return (n < 10 ? '0' : '') + n; }
+  function metades(cls, v) { return '<div class="' + cls + '"><span>' + v + '</span></div>'; }
+
+  // Mede a tela e encaixa os dois cartões: lado a lado em paisagem,
+  // um em cima do outro em retrato.
+  var css = document.createElement('style');
+  document.head.appendChild(css);
+  function medir() {
+    var L = window.innerWidth, A = window.innerHeight, deitado = L > A;
+    var w, h, vao;
+    if (deitado) { vao = Math.round(L * 0.04); w = Math.floor(Math.min((L * 0.92 - vao) / 2, A * 0.86 / 0.9)); h = Math.round(w * 0.9); }
+    else { vao = Math.round(A * 0.03); w = Math.floor(Math.min(L * 0.88, (A * 0.90 - vao) / 2 / 0.72)); h = Math.round(w * 0.72); }
+    var fw = deitado ? w * 2 + vao : w, fh = deitado ? h : h * 2 + vao;
+    var r = Math.round(w * 0.06), f = Math.round(h * 0.78);
+    css.innerHTML =
+      '#flip{width:' + fw + 'px;height:' + fh + 'px;margin:' + (-fh / 2) + 'px 0 0 ' + (-fw / 2) + 'px}' +
+      '.cartao{width:' + w + 'px;height:' + h + 'px;font-size:' + f + 'px;letter-spacing:' + (-Math.round(f * 0.02)) + 'px}' +
+      '#cartao-h{left:0;top:0}' +
+      '#cartao-m{' + (deitado ? 'left:' + (w + vao) + 'px;top:0' : 'left:0;top:' + (h + vao) + 'px') + '}' +
+      '.cartao span{height:' + h + 'px;line-height:' + h + 'px}' +
+      '.cartao .baixo span{margin-top:' + (-h / 2) + 'px}' +
+      '.cartao .cima{border-radius:' + r + 'px ' + r + 'px 0 0}' +
+      '.cartao .baixo{border-radius:0 0 ' + r + 'px ' + r + 'px}';
+  }
+
+  function virar(id, v) {
+    var c = $(id), antes = c.getAttribute('data-v');
+    if (antes === v) return;
+    c.setAttribute('data-v', v);
+    if (antes === null) { // primeira vez: sem animação
+      c.innerHTML = metades('metade cima', v) + metades('metade baixo', v);
+      return;
+    }
+    // fixas: novo em cima, velho embaixo; abas: velho caindo, depois o novo
+    c.className = 'cartao';
+    c.innerHTML = metades('metade cima', v) + metades('metade baixo', antes) +
+      metades('aba cima', antes) + metades('aba baixo', v);
+    void c.offsetWidth; // reinicia a animação
+    c.className = 'cartao virando';
+    setTimeout(function () {
+      if (c.getAttribute('data-v') !== v) return;
+      c.className = 'cartao';
+      c.innerHTML = metades('metade cima', v) + metades('metade baixo', v);
+    }, 700);
+  }
+
+  // Hora do próprio iPhone, sem segundos; acorda na virada de cada segundo
+  function tique() {
+    var d = new Date();
+    virar('cartao-h', dois(d.getHours()));
+    virar('cartao-m', dois(d.getMinutes()));
+    setTimeout(tique, 1000 - d.getMilliseconds());
+  }
+
+  medir();
+  window.addEventListener('resize', function () { setTimeout(medir, 100); }, false);
+  window.addEventListener('orientationchange', function () { setTimeout(medir, 300); }, false);
+  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false); // sem "elástico"
+  tique();
+})();
+</script>
+</body>
+</html>

@@ -31,6 +31,14 @@ das APIs. Então ele não faz quase nada sozinho:
 | **Relógio noturno** | Das **23h às 6h** a tela vira um relógio grande de cartões que viram a cada minuto (flip clock). **Toque** para voltar ao painel; à noite ele volta sozinho depois de 5 min sem tocar. De dia, um toque no painel abre o relógio e outro fecha. |
 | **Senha** | Na primeira vez o iPad pede a senha e se lembra dela. |
 
+**Relógio para o iPhone.** O mesmo relógio de cartões também existe sozinho em
+[`relogio.html`](relogio.html), pensado para um iPhone 5S antigo (iOS 12):
+https://jppaivasilva.github.io/iPad-Antigo/relogio.html. Não pede senha nem
+busca dados, usa a hora do próprio aparelho e se ajusta em pé (horas em cima,
+minutos embaixo) ou deitado (lado a lado). No Safari, *Compartilhar →
+Adicionar à Tela de Início* para abrir em tela cheia, e em *Ajustes → Tela e
+Brilho* deixe o Bloqueio Automático em "Nunca".
+
 Detalhes que fazem diferença no iPad 2:
 
 - **Hora certa mesmo com o iOS desatualizado.** O relógio usa a hora do
@@ -65,6 +73,7 @@ Detalhes que fazem diferença no iPad 2:
 | [`index.html`](index.html) | Estrutura das telas: painel, fotos, relógio noturno e senha. |
 | [`app.js`](app.js) | Tudo que roda no iPad: relógio, troca de telas, leitura e decifragem de `dados.txt`. Ajustes da tela no objeto `CONFIG`, no topo. |
 | [`style.css`](style.css) | Visual no estilo iOS, com cores de reserva para o Safari antigo. |
+| [`relogio.html`](relogio.html) | Relógio de cartões sozinho, para o iPhone (estilo e script dentro do próprio arquivo). |
 | [`sjcl.js`](sjcl.js) | Biblioteca de criptografia que funciona no Safari 9. |
 | [`config.json`](config.json) | Cidade, coordenadas, fuso, feeds de notícias e limites (notícias, fotos, dias da agenda). |
 | [`scripts/gerar_dados.py`](scripts/gerar_dados.py) | O robô: busca as fontes, reduz fotos, cifra e grava `dados.txt` e `retratos/`. |
@@ -75,6 +84,7 @@ O que vai para o site público:
 | Publicado | Como |
 | --- | --- |
 | `index.html`, `app.js`, `style.css`, `sjcl.js` | Abertos. Sozinhos, só mostram a tela de senha. |
+| `relogio.html` | Aberto. Só o relógio, sem dados. |
 | `dados.txt` | **Cifrado.** Tempo, notícias, dólar e agenda. |
 | `retratos/*.txt` | **Cifrados**, uma foto por arquivo, com nomes que não revelam nada. |
 | `img/` | Miniaturas das notícias, abertas por já serem públicas. |
